@@ -141,9 +141,17 @@ public class TestHarness : MonoBehaviour
             }
         }
 
+        if (Input.GetMouseButtonUp(0))
+        {
+            if (currentSelectableArea != null)
+            {
+                currentSelectableArea.Selectable.InteractEnded();
+            }
+        }
+
         if (Input.GetMouseButtonDown(1))
         {
-            if (currentSelectable.Parent != null)
+            if (currentSelectable.Parent != null && currentSelectable.Cancel())
             {
                 currentSelectable.DeactivateChildSelectableAreas(currentSelectable.Parent);
                 currentSelectable = currentSelectable.Parent;
@@ -203,10 +211,10 @@ public class TestHarness : MonoBehaviour
             }
             foreach (KMNeedyModule module in GameObject.FindObjectsOfType<KMNeedyModule>())
             {
-                if (module.OnActivate != null)
-                {
-                    module.OnActivate();
-                }
+            	if (module.OnActivate != null)
+            	{
+            		module.OnActivate();
+            	}
             }
         }
 
@@ -256,7 +264,7 @@ public class TestHarness : MonoBehaviour
 
         GameObject pointLight = new GameObject("Lamp");
         Light light = pointLight.AddComponent<Light>();
-
+        
         light.type = LightType.Point;
         light.range = 4.245148f;
         light.transform.position = new Vector3(-1.089771f, 0.9635483f, 0.5165237f);
