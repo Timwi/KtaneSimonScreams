@@ -126,5 +126,78 @@ namespace SimonScreams
             }
             return -1;
         }
+
+        /// <summary>
+        ///     Returns the index of the first element in this <paramref name="source"/> satisfying the specified <paramref
+        ///     name="predicate"/>. If no such elements are found, returns <c>-1</c>.</summary>
+        public static int IndexOf<T>(this IEnumerable<T> source, Func<T, bool> predicate)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+            if (predicate == null)
+                throw new ArgumentNullException("predicate");
+            int index = 0;
+            foreach (var v in source)
+            {
+                if (predicate(v))
+                    return index;
+                index++;
+            }
+            return -1;
+        }
+
+        /// <summary>
+        ///     Returns the parameters as a new array.</summary>
+        /// <remarks>
+        ///     Useful to circumvent Visual Studio’s bug where multi-line literal arrays are not auto-formatted.</remarks>
+        public static T[] NewArray<T>(params T[] parameters) { return parameters; }
+
+        public static bool AnyDuplicates<T>(this IEnumerable<T> source)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+
+            var set = new HashSet<T>();
+            using (var e = source.GetEnumerator())
+            {
+                while (e.MoveNext())
+                    if (!set.Add(e.Current))
+                        return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        ///     Returns a collection of integers containing the indexes at which the elements of the source collection match
+        ///     the given predicate.</summary>
+        /// <typeparam name="T">
+        ///     The type of elements in the collection.</typeparam>
+        /// <param name="source">
+        ///     The source collection whose elements are tested using <paramref name="predicate"/>.</param>
+        /// <param name="predicate">
+        ///     The predicate against which the elements of <paramref name="source"/> are tested.</param>
+        /// <returns>
+        ///     A collection containing the zero-based indexes of all the matching elements, in increasing order.</returns>
+        public static IEnumerable<int> SelectIndexWhere<T>(this IEnumerable<T> source, Predicate<T> predicate)
+        {
+            if (source == null)
+                throw new ArgumentNullException("source");
+            if (predicate == null)
+                throw new ArgumentNullException("predicate");
+            return selectIndexWhereIterator(source, predicate);
+        }
+        private static IEnumerable<int> selectIndexWhereIterator<T>(this IEnumerable<T> source, Predicate<T> predicate)
+        {
+            int i = 0;
+            using (var e = source.GetEnumerator())
+            {
+                while (e.MoveNext())
+                {
+                    if (predicate(e.Current))
+                        yield return i;
+                    i++;
+                }
+            }
+        }
     }
 }

@@ -28,12 +28,45 @@ public class SimonScreamsModule : MonoBehaviour
     private int _subprogress;
     private bool _isActivated;
     private bool _isSolved;
-    private int _red, _green, _blue, _orange;
+    private int _red, _yellow, _blue, _orange;
     private bool _makeSounds;
     private Coroutine _blinker;
 
-    private static Criterion[] ColumnCriteria = new Criterion[] { new Col1Criterion(), new Col2Criterion(), new Col3Criterion(), new Col4Criterion(), new Col5Criterion(), new Col6Criterion() };
-    private static Criterion[] RowCriteria = new Criterion[] { new Row1Criterion(), new Row2Criterion(), new Row3Criterion(), new Row4Criterion(), new Row5Criterion(), new Row6Criterion() };
+    private static Criterion[] _columnCriteria = new Criterion[] { new Col1Criterion(), new Col2Criterion(), new Col3Criterion(), new Col4Criterion(), new Col5Criterion(), new Col6Criterion() };
+    private static Criterion[] _rowCriteria = new Criterion[] { new Row1Criterion(), new Row2Criterion(), new Row3Criterion(), new Row4Criterion(), new Row5Criterion(), new Row6Criterion() };
+    private static string[][] _largeTable = Ut.NewArray(
+        new[] { "HCE", "ADA", "CFD", "DHH", "EAC", "FEF" },
+        new[] { "DED", "ECF", "FHE", "HAA", "AFH", "CDC" },
+        new[] { "FFC", "CEH", "HAF", "ECD", "DDE", "AHA" },
+        new[] { "AHF", "DFC", "ECH", "CDE", "FEA", "HAD" },
+        new[] { "CAH", "FHD", "DDA", "AEC", "HCF", "EFE" },
+        new[] { "EDA", "HAE", "AEC", "FFF", "CHD", "DCH" }
+    );
+    private static string _smallTableColumns = "ACDEFH";
+    private static SimonColor[][] _smallTable = Ut.NewArray(
+        new[] { SimonColor.Yellow, SimonColor.Orange, SimonColor.Green, SimonColor.Red, SimonColor.Blue, SimonColor.Purple },
+        new[] { SimonColor.Purple, SimonColor.Yellow, SimonColor.Red, SimonColor.Blue, SimonColor.Orange, SimonColor.Green },
+        new[] { SimonColor.Orange, SimonColor.Green, SimonColor.Blue, SimonColor.Purple, SimonColor.Red, SimonColor.Yellow },
+        new[] { SimonColor.Green, SimonColor.Blue, SimonColor.Orange, SimonColor.Yellow, SimonColor.Purple, SimonColor.Red },
+        new[] { SimonColor.Red, SimonColor.Purple, SimonColor.Yellow, SimonColor.Orange, SimonColor.Green, SimonColor.Blue },
+        new[] { SimonColor.Blue, SimonColor.Red, SimonColor.Purple, SimonColor.Green, SimonColor.Yellow, SimonColor.Orange }
+    );
+    private static Func<KMBombInfo, bool>[] _smallTableRowCriteria = Ut.NewArray<Func<KMBombInfo, bool>>(
+        m => m.GetIndicators().Count() >= 2,
+        m => m.GetPorts().AnyDuplicates(),
+        m => m.GetPortPlates().Any(pp => pp.Length == 0),
+        m => m.GetSerialNumberLetters().Count() == 4,
+        m => m.GetBatteryHolderCount() >= 3,
+        m => true
+    );
+    private static string[] _smallTableRowCriteriaNames = Ut.NewArray(
+        "≥ 2 indicators",
+        "duplicate port",
+        "empty port plate",
+        "4 letters in #",
+        "≥ 3 b.h.",
+        "always"
+    );
 
     void Start()
     {
@@ -43,7 +76,7 @@ public class SimonScreamsModule : MonoBehaviour
         _subprogress = 0;
         _colors = ((SimonColor[]) Enum.GetValues(typeof(SimonColor))).Shuffle();
         _red = _colors.IndexOf(SimonColor.Red);
-        _green = _colors.IndexOf(SimonColor.Green);
+        _yellow = _colors.IndexOf(SimonColor.Yellow);
         _blue = _colors.IndexOf(SimonColor.Blue);
         _orange = _colors.IndexOf(SimonColor.Orange);
         _sequences = generateSequences();
@@ -68,6 +101,10 @@ public class SimonScreamsModule : MonoBehaviour
 
     private void startBlinker(float delay)
     {
+        if (_blinker != null)
+            StopCoroutine(_blinker);
+        foreach (var light in Lights)
+            light.enabled = false;
         Invoke("startBlinker", delay);
     }
 
@@ -87,11 +124,6 @@ public class SimonScreamsModule : MonoBehaviour
 
         _makeSounds = true;
         Audio.PlaySoundAtTransform("Sound" + (ix + 7), Buttons[ix].transform);
-        if (_blinker != null)
-        {
-            StopCoroutine(_blinker);
-            _blinker = null;
-        }
         CancelInvoke("startBlinker");
 
         if (ix != _expectedInput[_stage][_subprogress])
@@ -112,7 +144,9 @@ public class SimonScreamsModule : MonoBehaviour
                 {
                     Debug.LogFormat("[Simon Screams] Pressing {0} was correct. Module solved.", _colors[ix]);
                     _isSolved = true;
-                    Module.HandlePass();
+                    if (_blinker != null)
+                        StopCoroutine(_blinker);
+                    Invoke("pass", .5f);
                     return;
                 }
 
@@ -124,14 +158,19 @@ public class SimonScreamsModule : MonoBehaviour
         }
     }
 
+    private void pass()
+    {
+        Module.HandlePass();
+    }
+
     private IEnumerator runBlinker()
     {
         if (_subprogress != 0)
         {
-            Debug.LogFormat("[Simon Screams] Waited to long; input reset. Now at stage {0} key 1.", _stage + 1);
+            Debug.LogFormat("[Simon Screams] Waited too long; input reset. Now at stage {0} key 1.", _stage + 1);
             _subprogress = 0;
         }
-        while (true)
+        while (!_isSolved)
         {
             for (int i = 0; i < _sequences[_stage].Length; i++)
             {
@@ -176,7 +215,20 @@ public class SimonScreamsModule : MonoBehaviour
 
     void ActivateModule()
     {
-        Debug.Log("[Simon Screams] Activated");
         _isActivated = true;
+
+        var smallTableRows = _smallTableRowCriteria.Select(cri => cri(Bomb)).ToArray();
+        Debug.LogFormat("[Simon Screams] Small table applicable rows are: {0}", smallTableRows.SelectIndexWhere(b => b).Select(ix => _smallTableRowCriteriaNames[ix]).JoinString(", "));
+        var ryb = new[] { _red, _yellow, _blue };
+        _expectedInput = _sequences.Select((seq, stage) =>
+        {
+            var applicableColumn = _columnCriteria.IndexOf(cri => cri.Check(seq, ryb, _orange));
+            var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq, ryb, _orange));
+            Debug.LogFormat("[Simon Screams] Stage {0} column=“{1}”, row=“{2}”", stage + 1, _columnCriteria[applicableColumn].Name, _rowCriteria[applicableRow].Name);
+            var smallTableColumn = _smallTableColumns.IndexOf(_largeTable[applicableRow][applicableColumn][stage]);
+            return _smallTable.Where((row, ix) => smallTableRows[ix]).Select(row => _colors.IndexOf(row[smallTableColumn])).ToArray();
+        }).ToArray();
+
+        Debug.LogFormat("[Simon Screams] Activated. Expected keypresses are:\n{0}", _expectedInput.Select((seq, i) => string.Format("Stage {0}: {1}", i, seq.Select(ix => _colors[ix]).JoinString(", "))).JoinString("\n"));
     }
 }

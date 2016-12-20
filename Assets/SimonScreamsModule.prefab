@@ -321,6 +321,7 @@ GameObject:
   - 23: {fileID: 23000012891514868}
   - 114: {fileID: 114000010869164334}
   - 64: {fileID: 64000013276815118}
+  - 114: {fileID: 114000010479538482}
   m_Layer: 0
   m_Name: Button3
   m_TagString: Untagged
@@ -340,6 +341,7 @@ GameObject:
   - 23: {fileID: 23000010758459716}
   - 114: {fileID: 114000011453286972}
   - 64: {fileID: 64000014179644096}
+  - 114: {fileID: 114000011066103468}
   m_Layer: 0
   m_Name: Button5
   m_TagString: Untagged
@@ -359,6 +361,7 @@ GameObject:
   - 23: {fileID: 23000014148133012}
   - 114: {fileID: 114000012116928742}
   - 64: {fileID: 64000011870792596}
+  - 114: {fileID: 114000012732298810}
   m_Layer: 0
   m_Name: Button6
   m_TagString: Untagged
@@ -429,6 +432,7 @@ GameObject:
   - 114: {fileID: 114000013148968912}
   - 33: {fileID: 33000012632021570}
   - 23: {fileID: 23000010248419064}
+  - 114: {fileID: 114000010052026048}
   m_Layer: 0
   m_Name: Highlight
   m_TagString: Untagged
@@ -498,6 +502,7 @@ GameObject:
   - 23: {fileID: 23000011301413240}
   - 114: {fileID: 114000012208994652}
   - 64: {fileID: 64000011933313744}
+  - 114: {fileID: 114000013725449206}
   m_Layer: 0
   m_Name: Button1
   m_TagString: Untagged
@@ -551,6 +556,7 @@ GameObject:
   - 23: {fileID: 23000011837048960}
   - 114: {fileID: 114000010663677894}
   - 64: {fileID: 64000010555355228}
+  - 114: {fileID: 114000010061238906}
   m_Layer: 0
   m_Name: Button4
   m_TagString: Untagged
@@ -620,6 +626,7 @@ GameObject:
   - 23: {fileID: 23000013149266862}
   - 114: {fileID: 114000010624064208}
   - 64: {fileID: 64000013347330150}
+  - 114: {fileID: 114000010776772378}
   m_Layer: 0
   m_Name: Button2
   m_TagString: Untagged
@@ -885,8 +892,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_Materials:
-  - {fileID: 0}
+  m_Materials: []
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_ProbeAnchor: {fileID: 0}
@@ -914,8 +920,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_Materials:
-  - {fileID: 0}
+  m_Materials: []
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_ProbeAnchor: {fileID: 0}
@@ -1030,8 +1035,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_Materials:
-  - {fileID: 0}
+  m_Materials: []
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_ProbeAnchor: {fileID: 0}
@@ -1117,8 +1121,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_Materials:
-  - {fileID: 0}
+  m_Materials: []
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_ProbeAnchor: {fileID: 0}
@@ -1146,8 +1149,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_Materials:
-  - {fileID: 0}
+  m_Materials: []
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_ProbeAnchor: {fileID: 0}
@@ -1175,8 +1177,7 @@ MeshRenderer:
   m_MotionVectors: 1
   m_LightProbeUsage: 1
   m_ReflectionProbeUsage: 1
-  m_Materials:
-  - {fileID: 0}
+  m_Materials: []
   m_SubsetIndices: 
   m_StaticBatchRoot: {fileID: 0}
   m_ProbeAnchor: {fileID: 0}
@@ -1581,6 +1582,31 @@ Light:
   m_BounceIntensity: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+--- !u!114 &114000010052026048
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000011621307696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames: []
+--- !u!114 &114000010061238906
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000012702797586}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - Legacy Shaders/Transparent/Diffuse
 --- !u!114 &114000010285454046
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1607,6 +1633,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   HighlightScale: {x: 1, y: 1, z: 1}
   OutlineAmount: 0
+--- !u!114 &114000010479538482
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000010038361874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - Legacy Shaders/Transparent/Diffuse
 --- !u!114 &114000010520621148
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1666,6 +1705,19 @@ MonoBehaviour:
   AllowSelectionWrapY: 0
   ForceSelectionHighlight: 0
   ForceInteractionHighlight: 0
+--- !u!114 &114000010776772378
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000014017577568}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - Legacy Shaders/Transparent/Diffuse
 --- !u!114 &114000010869164334
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1689,6 +1741,19 @@ MonoBehaviour:
   AllowSelectionWrapY: 0
   ForceSelectionHighlight: 0
   ForceInteractionHighlight: 0
+--- !u!114 &114000011066103468
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000010201040676}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - Legacy Shaders/Transparent/Diffuse
 --- !u!114 &114000011095475480
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1771,6 +1836,19 @@ MonoBehaviour:
   AllowSelectionWrapY: 0
   ForceSelectionHighlight: 0
   ForceInteractionHighlight: 0
+--- !u!114 &114000012732298810
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000010673069382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - Legacy Shaders/Transparent/Diffuse
 --- !u!114 &114000012746689226
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1797,6 +1875,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   HighlightScale: {x: 1, y: 1, z: 1}
   OutlineAmount: 0
+--- !u!114 &114000013725449206
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1000012392161384}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1005838349, guid: 45b809be76fd7a3468b6f517bced6f28, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ShaderNames:
+  - Legacy Shaders/Transparent/Diffuse
 --- !u!114 &114000013758526718
 MonoBehaviour:
   m_ObjectHideFlags: 1

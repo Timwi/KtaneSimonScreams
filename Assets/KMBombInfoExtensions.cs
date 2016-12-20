@@ -217,7 +217,8 @@ namespace SimonScreams
 
         public static IEnumerable<char> GetSerialNumberLetters(this KMBombInfo bombInfo)
         {
-            return GetSerialNumber(bombInfo).Where((x) => x < '0' || x > '9');
+            var serial = GetSerialNumber(bombInfo);
+            return serial == null ? Enumerable.Empty<char>() : serial.Where((x) => x < '0' || x > '9');
         }
 
         public static IEnumerable<int> GetSerialNumberNumbers(this KMBombInfo bombInfo)
