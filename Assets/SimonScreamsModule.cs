@@ -17,9 +17,15 @@ public class SimonScreamsModule : MonoBehaviour
     public KMBombModule Module;
     public KMAudio Audio;
 
+    public KMSelectable MainSelectable;
     public KMSelectable[] Buttons;
     public Light[] Lights;
     public Material[] Materials;
+    public Transform FlapsParent;
+    public Transform KeypadParent;
+
+    public Mesh Sphere;
+    public Material SphereMat;
 
     private SimonColor[] _colors;
     private int[][] _sequences;
@@ -68,6 +74,20 @@ public class SimonScreamsModule : MonoBehaviour
         "always"
     );
 
+    private static Vector3[] _unrotatedFlapOutline;
+
+    static SimonScreamsModule()
+    {
+        const float innerRadius = 0.4f;
+        const float outerRadius = 1.02f;
+        const float cos = 0.866f;
+        const float sin = 0.5f;
+        const float depth = .01f;
+        const float offset = .025f;
+
+        _unrotatedFlapOutline = new[] { new Vector3(offset, -depth, 0), new Vector3(innerRadius * cos + offset, -depth, innerRadius * sin), new Vector3(outerRadius + offset, -depth, 0), new Vector3(innerRadius * cos + offset, -depth, -innerRadius * sin) };
+    }
+
     void Start()
     {
         _isActivated = false;
@@ -92,11 +112,65 @@ public class SimonScreamsModule : MonoBehaviour
             Buttons[i].OnInteract = delegate { HandlePress(j); return false; };
         }
 
-        Debug.LogFormat("[Simon Screams] Started. Sequences are:\n{0}", _sequences.Select((seq, i) => string.Format("Stage {0}: {1}", i, seq.Select(ix => _colors[ix]).JoinString(", "))).JoinString("\n"));
-
-        Module.OnActivate = ActivateModule;
+        Debug.LogFormat("[Simon Screams] Started. Colors are: {0}\nRed/Yellow/Blue/Orange are at:{1}/{2}/{3}/{4}\nSequences are:\n{5}",
+            _colors.JoinString(", "),
+            _red, _yellow, _blue, _orange,
+            _sequences.Select((seq, i) => string.Format("Stage {0}: {1} ({2})", i, seq.JoinString(", "), seq.Select(ix => _colors[ix]).JoinString(", "))).JoinString("\n"));
 
         startBlinker(1.5f);
+        alignFlaps(0, 90, 1);
+        Module.OnActivate = ActivateModule;
+    }
+
+    private void alignFlaps(int firstBtnIx, float angle, int steps, bool animation = false)
+    {
+        if (animation)
+            StartCoroutine(raiseFlapsParent());
+        for (int i = 0; i < 6; i++)
+        {
+            var btnIx = (i + firstBtnIx) % 6;
+            var flapOutline = _unrotatedFlapOutline.Select(p => Quaternion.Euler(0, -(60 * btnIx - 15), 0) * p).ToArray();
+            for (int flapIx = 0; flapIx < 4; flapIx++)
+                StartCoroutine(rotateFlap(flapOutline, flapIx, btnIx, angle, steps, animation ? 1f + i * .3f : (float?) null));
+            if (animation)
+                StartCoroutine(lowerButton((i + firstBtnIx) % 6, .5f + i * .3f));
+        }
+    }
+
+    private IEnumerator raiseFlapsParent()
+    {
+        for (int iter = 0; iter < 90; iter++)
+        {
+            FlapsParent.localPosition = new Vector3(0, 0.009f + .0000778f * iter, 0);
+            yield return null;
+        }
+    }
+
+    private IEnumerator lowerButton(int btnIx, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        for (int iter = 0; iter < 90; iter++)
+        {
+            Buttons[btnIx].transform.localPosition = new Vector3(0, -.0002f * iter, 0);
+            yield return null;
+        }
+    }
+
+    private IEnumerator rotateFlap(Vector3[] flapOutline, int flapIx, int btnIx, float angle, int steps, float? initialDelay)
+    {
+        if (initialDelay != null)
+            yield return new WaitForSeconds(initialDelay.Value);
+
+        var flap = FlapsParent.FindChild("Flap" + (4 * btnIx + flapIx));
+
+        for (int iter = 0; iter < steps; iter++)
+        {
+            var pt = flap.localToWorldMatrix * new Vector4(-flapOutline[flapIx].x, flapOutline[flapIx].y, flapOutline[flapIx].z, 1);
+            var pt2 = flap.localToWorldMatrix * new Vector4(-flapOutline[(flapIx + 1) % 4].x, flapOutline[(flapIx + 1) % 4].y, flapOutline[(flapIx + 1) % 4].z, 1);
+            var axis = new Vector3(pt2.x - pt.x, pt2.y - pt.y, pt2.z - pt.z);
+            flap.RotateAround(pt, axis, -angle);
+            yield return null;
+        }
     }
 
     private void startBlinker(float delay)
@@ -125,11 +199,12 @@ public class SimonScreamsModule : MonoBehaviour
         _makeSounds = true;
         Audio.PlaySoundAtTransform("Sound" + (ix + 7), Buttons[ix].transform);
         CancelInvoke("startBlinker");
+        bool doStrike = false;
 
         if (ix != _expectedInput[_stage][_subprogress])
         {
             Debug.LogFormat("[Simon Screams] Expected {0}, but you pressed {1}. Input reset. Now at stage {2} key 1.", _colors[_expectedInput[_stage][_subprogress]], _colors[ix], _stage + 1);
-            Module.HandleStrike();
+            doStrike = true;
             _subprogress = 0;
             startBlinker(1.5f);
         }
@@ -144,9 +219,7 @@ public class SimonScreamsModule : MonoBehaviour
                 {
                     Debug.LogFormat("[Simon Screams] Pressing {0} was correct. Module solved.", _colors[ix]);
                     _isSolved = true;
-                    if (_blinker != null)
-                        StopCoroutine(_blinker);
-                    Invoke("pass", .5f);
+                    StartCoroutine(victory(ix));
                     return;
                 }
 
@@ -154,12 +227,33 @@ public class SimonScreamsModule : MonoBehaviour
             }
             else
                 startBlinker(5f);
+
             Debug.LogFormat("[Simon Screams] Pressing {0} was correct; now at stage {1} key {2}.", _colors[ix], _stage + 1, _subprogress + 1);
         }
+
+        StartCoroutine(flashUpOne(ix, doStrike));
     }
 
-    private void pass()
+    private IEnumerator victory(int ix)
     {
+        alignFlaps(ix, -1, 90, animation: true);
+        if (_blinker != null)
+            StopCoroutine(_blinker);
+        foreach (var light in Lights)
+            light.enabled = false;
+        Lights[ix].enabled = true;
+        yield return new WaitForSeconds(.3f);
+        Lights[ix].enabled = false;
+        yield return new WaitForSeconds(.1f);
+        Audio.PlaySoundAtTransform("Victory", Buttons[ix].transform);
+        for (int i = 0; i < 13; i++)
+        {
+            Lights[(i + ix) % 6].enabled = true;
+            Lights[(12 - i + ix) % 6].enabled = true;
+            yield return new WaitForSeconds(.1f);
+            Lights[(i + ix) % 6].enabled = false;
+            Lights[(12 - i + ix) % 6].enabled = false;
+        }
         Module.HandlePass();
     }
 
@@ -183,6 +277,17 @@ public class SimonScreamsModule : MonoBehaviour
             }
             yield return new WaitForSeconds(2.5f);
         }
+    }
+
+    private IEnumerator flashUpOne(int ix, bool doStrike)
+    {
+        yield return null;
+        Lights[ix].enabled = true;
+        yield return new WaitForSeconds(.3f);
+        Lights[ix].enabled = false;
+        yield return new WaitForSeconds(.05f);
+        if (doStrike)
+            Module.HandleStrike();
     }
 
     private static int[][] generateSequences()

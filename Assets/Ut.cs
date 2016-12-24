@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-
+using UnityEngine;
 using Rnd = UnityEngine.Random;
 
 namespace SimonScreams
@@ -28,7 +28,7 @@ namespace SimonScreams
             Array.Copy(array, startIndex, result, 0, length);
             return result;
         }
-        
+
         public static T[] Shuffle<T>(this T[] array)
         {
             if (array == null)
@@ -105,6 +105,16 @@ namespace SimonScreams
                 sb.Append(lastSeparator).Append(prefix).Append(prev).Append(suffix);
                 return sb.ToString();
             }
+        }
+
+        public static string VectorToString(this Vector3 arg)
+        {
+            return string.Format("({0}, {1}, {2})", arg.x, arg.y, arg.z);
+        }
+
+        public static string VectorToString(this Vector4 arg)
+        {
+            return string.Format("({0}, {1}, {2}, {3})", arg.x, arg.y, arg.z, arg.w);
         }
 
         /// <summary>
