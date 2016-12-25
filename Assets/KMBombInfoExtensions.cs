@@ -223,7 +223,8 @@ namespace SimonScreams
 
         public static IEnumerable<int> GetSerialNumberNumbers(this KMBombInfo bombInfo)
         {
-            return GetSerialNumber(bombInfo).Where((x) => x >= '0' && x <= '9').Select((y) => int.Parse("" + y));
+            var serial = GetSerialNumber(bombInfo);
+            return serial == null ? Enumerable.Empty<int>() : serial.Where((x) => x >= '0' && x <= '9').Select((y) => int.Parse("" + y));
         }
 
         #endregion

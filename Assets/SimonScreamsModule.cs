@@ -34,17 +34,16 @@ public class SimonScreamsModule : MonoBehaviour
     private int _subprogress;
     private bool _isActivated;
     private bool _isSolved;
-    private int _red, _yellow, _blue, _orange;
+    private int _red, _yellow, _blue;
     private bool _makeSounds;
     private Coroutine _blinker;
 
-    private static Criterion[] _columnCriteria = new Criterion[] { new Col1Criterion(), new Col2Criterion(), new Col3Criterion(), new Col4Criterion(), new Col5Criterion(), new Col6Criterion() };
     private static Criterion[] _rowCriteria = new Criterion[] { new Row1Criterion(), new Row2Criterion(), new Row3Criterion(), new Row4Criterion(), new Row5Criterion(), new Row6Criterion() };
     private static string[][] _largeTable = Ut.NewArray(
-        new[] { "HCE", "ADA", "CFD", "DHH", "EAC", "FEF" },
-        new[] { "DED", "ECF", "FHE", "HAA", "AFH", "CDC" },
         new[] { "FFC", "CEH", "HAF", "ECD", "DDE", "AHA" },
         new[] { "AHF", "DFC", "ECH", "CDE", "FEA", "HAD" },
+        new[] { "DED", "ECF", "FHE", "HAA", "AFH", "CDC" },
+        new[] { "HCE", "ADA", "CFD", "DHH", "EAC", "FEF" },
         new[] { "CAH", "FHD", "DDA", "AEC", "HCF", "EFE" },
         new[] { "EDA", "HAE", "AEC", "FFF", "CHD", "DCH" }
     );
@@ -58,21 +57,23 @@ public class SimonScreamsModule : MonoBehaviour
         new[] { SimonColor.Blue, SimonColor.Red, SimonColor.Purple, SimonColor.Green, SimonColor.Yellow, SimonColor.Orange }
     );
     private static Func<KMBombInfo, bool>[] _smallTableRowCriteria = Ut.NewArray<Func<KMBombInfo, bool>>(
-        m => m.GetIndicators().Count() >= 2,
-        m => m.GetPorts().AnyDuplicates(),
-        m => m.GetPortPlates().Any(pp => pp.Length == 0),
-        m => m.GetSerialNumberLetters().Count() == 4,
+        m => m.GetOnIndicators().Any(),
+        m => m.GetOffIndicators().Any(),
+        m => m.GetSerialNumberNumbers().Count() >= 3,
+        m => m.GetSerialNumberLetters().Count() >= 3,
         m => m.GetBatteryHolderCount() >= 3,
         m => true
     );
     private static string[] _smallTableRowCriteriaNames = Ut.NewArray(
-        "≥ 2 indicators",
-        "duplicate port",
-        "empty port plate",
-        "4 letters in #",
-        "≥ 3 b.h.",
+        "lit indicator",
+        "unlit indicator",
+        "≥ 3 numbers in serial number",
+        "≥ 3 letters in serial number",
+        "≥ 3 battery holders",
         "always"
     );
+
+    private const int numStages = 3, minFirstStageLength = 3, maxFirstStageLength = 5, minStageExtra = 1, maxStageExtra = 2;
 
     private static Vector3[] _unrotatedFlapOutline;
 
@@ -98,7 +99,6 @@ public class SimonScreamsModule : MonoBehaviour
         _red = _colors.IndexOf(SimonColor.Red);
         _yellow = _colors.IndexOf(SimonColor.Yellow);
         _blue = _colors.IndexOf(SimonColor.Blue);
-        _orange = _colors.IndexOf(SimonColor.Orange);
         _sequences = generateSequences();
         _makeSounds = false;
 
@@ -112,9 +112,9 @@ public class SimonScreamsModule : MonoBehaviour
             Buttons[i].OnInteract = delegate { HandlePress(j); return false; };
         }
 
-        Debug.LogFormat("[Simon Screams] Started. Colors are: {0}\nRed/Yellow/Blue/Orange are at:{1}/{2}/{3}/{4}\nSequences are:\n{5}",
+        Debug.LogFormat("[Simon Screams] Started. Colors are: {0}\nRed/Yellow/Blue are at: {1}/{2}/{3}\nSequences are:\n{4}",
             _colors.JoinString(", "),
-            _red, _yellow, _blue, _orange,
+            _red, _yellow, _blue,
             _sequences.Select((seq, i) => string.Format("Stage {0}: {1} ({2})", i, seq.JoinString(", "), seq.Select(ix => _colors[ix]).JoinString(", "))).JoinString("\n"));
 
         startBlinker(1.5f);
@@ -139,6 +139,7 @@ public class SimonScreamsModule : MonoBehaviour
 
     private IEnumerator raiseFlapsParent()
     {
+        yield return new WaitForSeconds(.3f);
         for (int iter = 0; iter < 90; iter++)
         {
             FlapsParent.localPosition = new Vector3(0, 0.009f + .0000778f * iter, 0);
@@ -271,9 +272,9 @@ public class SimonScreamsModule : MonoBehaviour
                 if (_makeSounds)
                     Audio.PlaySoundAtTransform("Sound" + (_sequences[_stage][i] + 1), Buttons[(int) _colors[_sequences[_stage][i]]].transform);
                 Lights[_sequences[_stage][i]].enabled = true;
-                yield return new WaitForSeconds(.25f);
+                yield return new WaitForSeconds(.30f);
                 Lights[_sequences[_stage][i]].enabled = false;
-                yield return new WaitForSeconds(.05f);
+                yield return new WaitForSeconds(.10f);
             }
             yield return new WaitForSeconds(2.5f);
         }
@@ -292,30 +293,17 @@ public class SimonScreamsModule : MonoBehaviour
 
     private static int[][] generateSequences()
     {
-        var seq = generateSequence().ToArray();
-        var arr = new int[3][];
-        var len = 6;
-        for (int stage = 0; stage < 3; stage++)
+        var seq = new int[maxFirstStageLength + numStages * maxStageExtra];
+        for (int i = 0; i < seq.Length; i++)
+            seq[i] = Rnd.Range(0, 6);
+        var arr = new int[numStages][];
+        var len = Rnd.Range(minFirstStageLength, maxFirstStageLength + 1);
+        for (int stage = 0; stage < numStages; stage++)
         {
             arr[stage] = seq.Subarray(0, len);
-            len += Rnd.Range(0, 3) + 1;
+            len += Rnd.Range(minStageExtra, maxStageExtra + 1);
         }
         return arr;
-    }
-
-    private static IEnumerable<int> generateSequence()
-    {
-        var last = Rnd.Range(0, 6);
-        yield return last;
-        var num = 12;
-        for (int i = 1; i < num; i++)
-        {
-            var next = Rnd.Range(0, 5);
-            if (next >= last)
-                next++;
-            yield return next;
-            last = next;
-        }
     }
 
     void ActivateModule()
@@ -327,10 +315,10 @@ public class SimonScreamsModule : MonoBehaviour
         var ryb = new[] { _red, _yellow, _blue };
         _expectedInput = _sequences.Select((seq, stage) =>
         {
-            var applicableColumn = _columnCriteria.IndexOf(cri => cri.Check(seq, ryb, _orange));
-            var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq, ryb, _orange));
-            Debug.LogFormat("[Simon Screams] Stage {0} column=“{1}”, row=“{2}”", stage + 1, _columnCriteria[applicableColumn].Name, _rowCriteria[applicableRow].Name);
-            var smallTableColumn = _smallTableColumns.IndexOf(_largeTable[applicableRow][applicableColumn][stage]);
+            var applicableColumn = _colors[seq[stage]];
+            var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq, ryb));
+            Debug.LogFormat("[Simon Screams] Stage {0} column={1}, row={2} ({3})", stage + 1, applicableColumn, applicableRow + 1, _rowCriteria[applicableRow].Name);
+            var smallTableColumn = _smallTableColumns.IndexOf(_largeTable[applicableRow][(int) applicableColumn][stage]);
             return _smallTable.Where((row, ix) => smallTableRows[ix]).Select(row => _colors.IndexOf(row[smallTableColumn])).ToArray();
         }).ToArray();
 
