@@ -120,6 +120,8 @@ public class SimonScreamsModule : MonoBehaviour
         startBlinker(1.5f);
         alignFlaps(0, 90, 1);
         Module.OnActivate = ActivateModule;
+        Bomb.OnBombExploded = delegate { StopAllCoroutines(); };
+        Bomb.OnBombSolved = delegate { StopAllCoroutines(); };
     }
 
     private void alignFlaps(int firstBtnIx, float angle, int steps, bool animation = false)
@@ -200,12 +202,11 @@ public class SimonScreamsModule : MonoBehaviour
         _makeSounds = true;
         Audio.PlaySoundAtTransform("Sound" + (ix + 7), Buttons[ix].transform);
         CancelInvoke("startBlinker");
-        bool doStrike = false;
 
         if (ix != _expectedInput[_stage][_subprogress])
         {
             Debug.LogFormat("[Simon Screams] Expected {0}, but you pressed {1}. Input reset. Now at stage {2} key 1.", _colors[_expectedInput[_stage][_subprogress]], _colors[ix], _stage + 1);
-            doStrike = true;
+            Module.HandleStrike();
             _subprogress = 0;
             startBlinker(1.5f);
         }
@@ -232,7 +233,7 @@ public class SimonScreamsModule : MonoBehaviour
             Debug.LogFormat("[Simon Screams] Pressing {0} was correct; now at stage {1} key {2}.", _colors[ix], _stage + 1, _subprogress + 1);
         }
 
-        StartCoroutine(flashUpOne(ix, doStrike));
+        StartCoroutine(flashUpOne(ix));
     }
 
     private IEnumerator victory(int ix)
@@ -280,15 +281,12 @@ public class SimonScreamsModule : MonoBehaviour
         }
     }
 
-    private IEnumerator flashUpOne(int ix, bool doStrike)
+    private IEnumerator flashUpOne(int ix)
     {
         yield return null;
         Lights[ix].enabled = true;
         yield return new WaitForSeconds(.3f);
         Lights[ix].enabled = false;
-        yield return new WaitForSeconds(.05f);
-        if (doStrike)
-            Module.HandleStrike();
     }
 
     private static int[][] generateSequences()
