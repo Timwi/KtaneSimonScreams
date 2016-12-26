@@ -57,20 +57,20 @@ public class SimonScreamsModule : MonoBehaviour
         new[] { SimonColor.Blue, SimonColor.Red, SimonColor.Purple, SimonColor.Green, SimonColor.Yellow, SimonColor.Orange }
     );
     private static Func<KMBombInfo, bool>[] _smallTableRowCriteria = Ut.NewArray<Func<KMBombInfo, bool>>(
-        m => m.GetOnIndicators().Any(),
-        m => m.GetOffIndicators().Any(),
+        m => m.GetIndicators().Count() >= 3,
+        m => m.GetPortCount() >= 3,
         m => m.GetSerialNumberNumbers().Count() >= 3,
         m => m.GetSerialNumberLetters().Count() >= 3,
-        m => m.GetBatteryHolderCount() >= 3,
-        m => true
+        m => m.GetBatteryCount() >= 3,
+        m => m.GetBatteryHolderCount() >= 3
     );
     private static string[] _smallTableRowCriteriaNames = Ut.NewArray(
-        "lit indicator",
-        "unlit indicator",
+        "≥ 3 indicators",
+        "≥ 3 ports",
         "≥ 3 numbers in serial number",
         "≥ 3 letters in serial number",
-        "≥ 3 battery holders",
-        "always"
+        "≥ 3 batteries",
+        "≥ 3 battery holders"
     );
 
     private const int numStages = 3, minFirstStageLength = 3, maxFirstStageLength = 5, minStageExtra = 1, maxStageExtra = 2;
@@ -121,7 +121,6 @@ public class SimonScreamsModule : MonoBehaviour
         alignFlaps(0, 90, 1);
         Module.OnActivate = ActivateModule;
         Bomb.OnBombExploded = delegate { StopAllCoroutines(); };
-        Bomb.OnBombSolved = delegate { StopAllCoroutines(); };
     }
 
     private void alignFlaps(int firstBtnIx, float angle, int steps, bool animation = false)
@@ -292,8 +291,13 @@ public class SimonScreamsModule : MonoBehaviour
     private static int[][] generateSequences()
     {
         var seq = new int[maxFirstStageLength + numStages * maxStageExtra];
-        for (int i = 0; i < seq.Length; i++)
-            seq[i] = Rnd.Range(0, 6);
+        seq[0] = Rnd.Range(0, 6);
+        for (int i = 1; i < seq.Length; i++)
+        {
+            seq[i] = Rnd.Range(0, 5);
+            if (seq[i] >= seq[i - 1])
+                seq[i]++;
+        }
         var arr = new int[numStages][];
         var len = Rnd.Range(minFirstStageLength, maxFirstStageLength + 1);
         for (int stage = 0; stage < numStages; stage++)

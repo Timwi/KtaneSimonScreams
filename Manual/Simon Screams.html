@@ -21,6 +21,9 @@
         table.simon-screams th {
             text-align: right;
         }
+        table.simon-screams th.little {
+            text-align: left;
+        }
         table.simon-screams tr.top > th {
             text-align: center;
             vertical-align: bottom;
@@ -94,12 +97,12 @@
                                 <th>F
                                 <th>H
                             </tr>
-                            <tr><th>lit indicator   <td>Y<td>O<td>G<td>R<td>B<td>P</tr>
-                            <tr><th>unlit indicator <td>P<td>Y<td>R<td>B<td>O<td>G</tr>
-                            <tr><th>≥ 3 numbers in #<td>O<td>G<td>B<td>P<td>R<td>Y</tr>
-                            <tr><th>≥ 3 letters in #<td>G<td>B<td>O<td>Y<td>P<td>R</tr>
-                            <tr><th>≥ 3 bat. holders<td>R<td>P<td>Y<td>O<td>G<td>B</tr>
-                            <tr><th>always          <td>B<td>R<td>P<td>G<td>Y<td>O</tr>
+                            <tr><th class='little'>≥ 3 indicators  <td>Y<td>O<td>G<td>R<td>B<td>P</tr>
+                            <tr><th class='little'>≥ 3 ports       <td>P<td>Y<td>R<td>B<td>O<td>G</tr>
+                            <tr><th class='little'>≥ 3 numbers in #<td>O<td>G<td>B<td>P<td>R<td>Y</tr>
+                            <tr><th class='little'>≥ 3 letters in #<td>G<td>B<td>O<td>Y<td>P<td>R</tr>
+                            <tr><th class='little'>≥ 3 batteries   <td>R<td>P<td>Y<td>O<td>G<td>B</tr>
+                            <tr><th class='little'>≥ 3 bat. holders<td>B<td>R<td>P<td>G<td>Y<td>O</tr>
                         </table>
 
                     <th colspan='6' class='corner'>
@@ -116,12 +119,12 @@
                     <th><span class='text'>purple</span>
                 </tr>
 
-                <tr><th>If three adjacent colors flashed in clockwise order                         <td>FFC<td>CEH<td>HAF<td>ECD<td>DDE<td>AHA</tr>
-                <tr><th>Otherwise, if a color flashed, then an adjacent color, then the first again <td>AHF<td>DFC<td>ECH<td>CDE<td>FEA<td>HAD</tr>
-                <tr><th>Otherwise, if at most one of red, yellow and blue flashed                   <td>DED<td>ECF<td>FHE<td>HAA<td>AFH<td>CDC</tr>
-                <tr><th>Otherwise, if two opposite colors didn’t flash                              <td>HCE<td>ADA<td>CFD<td>DHH<td>EAC<td>FEF</tr>
-                <tr><th>Otherwise, if two adjacent colors flashed in clockwise order                <td>CAH<td>FHD<td>DDA<td>AEC<td>HCF<td>EFE</tr>
-                <tr><th>Otherwise                                                                   <td>EDA<td>HAE<td>AEC<td>FFF<td>CHD<td>DCH</tr>
+                <tr><th>If three adjacent colors flashed in clockwise order                        <td>FFC<td>CEH<td>HAF<td>ECD<td>DDE<td>AHA</tr>
+                <tr><th>Otherwise, if a color flashed, then an adjacent color, then the first again<td>AHF<td>DFC<td>ECH<td>CDE<td>FEA<td>HAD</tr>
+                <tr><th>Otherwise, if at least two of red, yellow, and blue didn’t flash           <td>DED<td>ECF<td>FHE<td>HAA<td>AFH<td>CDC</tr>
+                <tr><th>Otherwise, if there are two colors opposite each other that didn’t flash   <td>HCE<td>ADA<td>CFD<td>DHH<td>EAC<td>FEF</tr>
+                <tr><th>Otherwise, if two adjacent colors flashed in clockwise order               <td>CAH<td>FHD<td>DDA<td>AEC<td>HCF<td>EFE</tr>
+                <tr><th>Otherwise                                                                  <td>EDA<td>HAE<td>AEC<td>FFF<td>CHD<td>DCH</tr>
             </table>
 		</div>
 	</div>
