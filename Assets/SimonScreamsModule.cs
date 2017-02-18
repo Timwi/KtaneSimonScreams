@@ -77,6 +77,9 @@ public class SimonScreamsModule : MonoBehaviour
 
     private static Vector3[] _unrotatedFlapOutline;
 
+    private static int _moduleIdCounter = 1;
+    private int _moduleId;
+
     static SimonScreamsModule()
     {
         const float innerRadius = 0.4f;
@@ -91,6 +94,7 @@ public class SimonScreamsModule : MonoBehaviour
 
     void Start()
     {
+        _moduleId = _moduleIdCounter++;
         _isActivated = false;
         _isSolved = false;
         _stage = 0;
@@ -112,10 +116,7 @@ public class SimonScreamsModule : MonoBehaviour
             Buttons[i].OnInteract = delegate { HandlePress(j); return false; };
         }
 
-        Debug.LogFormat("[Simon Screams] Started. Colors are: {0}\nRed/Yellow/Blue are at: {1}/{2}/{3}\nSequences are:\n{4}",
-            _colors.JoinString(", "),
-            _red, _yellow, _blue,
-            _sequences.Select((seq, i) => string.Format("Stage {0}: {1} ({2})", i, seq.JoinString(", "), seq.Select(ix => _colors[ix]).JoinString(", "))).JoinString("\n"));
+        Debug.LogFormat("[Simon Screams #{1}] Colors in clockwise order are: {0}", _colors.JoinString(", "), _moduleId);
 
         startBlinker(1.5f);
         alignFlaps(0, 90, 1);
@@ -204,7 +205,7 @@ public class SimonScreamsModule : MonoBehaviour
 
         if (ix != _expectedInput[_stage][_subprogress])
         {
-            Debug.LogFormat("[Simon Screams] Expected {0}, but you pressed {1}. Input reset. Now at stage {2} key 1.", _colors[_expectedInput[_stage][_subprogress]], _colors[ix], _stage + 1);
+            Debug.LogFormat("[Simon Screams #{3}] Expected {0}, but you pressed {1}. Input reset. Now at stage {2} key 1.", _colors[_expectedInput[_stage][_subprogress]], _colors[ix], _stage + 1, _moduleId);
             Module.HandleStrike();
             _subprogress = 0;
             startBlinker(1.5f);
@@ -212,24 +213,28 @@ public class SimonScreamsModule : MonoBehaviour
         else
         {
             _subprogress++;
+            var logStage = false;
             if (_subprogress == _expectedInput[_stage].Length)
             {
                 _stage++;
                 _subprogress = 0;
                 if (_stage == _expectedInput.Length)
                 {
-                    Debug.LogFormat("[Simon Screams] Pressing {0} was correct. Module solved.", _colors[ix]);
+                    Debug.LogFormat("[Simon Screams #{1}] Pressing {0} was correct. Module solved.", _colors[ix], _moduleId);
                     _isSolved = true;
                     StartCoroutine(victory(ix));
                     return;
                 }
 
+                logStage = true;
                 startBlinker(1f);
             }
             else
                 startBlinker(5f);
 
-            Debug.LogFormat("[Simon Screams] Pressing {0} was correct; now at stage {1} key {2}.", _colors[ix], _stage + 1, _subprogress + 1);
+            Debug.LogFormat("[Simon Screams #{3}] Pressing {0} was correct; now at stage {1} key {2}.", _colors[ix], _stage + 1, _subprogress + 1, _moduleId);
+            if (logStage)
+                logCurrentStage();
         }
 
         StartCoroutine(flashUpOne(ix));
@@ -262,7 +267,7 @@ public class SimonScreamsModule : MonoBehaviour
     {
         if (_subprogress != 0)
         {
-            Debug.LogFormat("[Simon Screams] Waited too long; input reset. Now at stage {0} key 1.", _stage + 1);
+            Debug.LogFormat("[Simon Screams #{1}] Waited too long; input reset. Now at stage {0} key 1.", _stage + 1, _moduleId);
             _subprogress = 0;
         }
         while (!_isSolved)
@@ -313,17 +318,26 @@ public class SimonScreamsModule : MonoBehaviour
         _isActivated = true;
 
         var smallTableRows = _smallTableRowCriteria.Select(cri => cri(Bomb)).ToArray();
-        Debug.LogFormat("[Simon Screams] Small table applicable rows are: {0}", smallTableRows.SelectIndexWhere(b => b).Select(ix => _smallTableRowCriteriaNames[ix]).JoinString(", "));
+        Debug.LogFormat("[Simon Screams #{1}] Small table applicable rows are: {0}", smallTableRows.SelectIndexWhere(b => b).Select(ix => _smallTableRowCriteriaNames[ix]).JoinString(", "), _moduleId);
         var ryb = new[] { _red, _yellow, _blue };
         _expectedInput = _sequences.Select((seq, stage) =>
         {
             var applicableColumn = _colors[seq[stage]];
             var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq, ryb));
-            Debug.LogFormat("[Simon Screams] Stage {0} column={1}, row={2} ({3})", stage + 1, applicableColumn, applicableRow + 1, _rowCriteria[applicableRow].Name);
             var smallTableColumn = _smallTableColumns.IndexOf(_largeTable[applicableRow][(int) applicableColumn][stage]);
             return _smallTable.Where((row, ix) => smallTableRows[ix]).Select(row => _colors.IndexOf(row[smallTableColumn])).ToArray();
         }).ToArray();
 
-        Debug.LogFormat("[Simon Screams] Activated. Expected keypresses are:\n{0}", _expectedInput.Select((seq, i) => string.Format("Stage {0}: {1}", i, seq.Select(ix => _colors[ix]).JoinString(", "))).JoinString("\n"));
+        logCurrentStage();
+    }
+
+    void logCurrentStage()
+    {
+        var seq = _sequences[_stage];
+        var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq, new[] { _red, _yellow, _blue }));
+
+        Debug.LogFormat("[Simon Screams #{2}] Stage {0} sequence: {1}", _stage + 1, seq.Select(ix => _colors[ix]).JoinString(", "), _moduleId);
+        Debug.LogFormat("[Simon Screams #{4}] Stage {0} column={1}, row={2} ({3})", _stage + 1, _colors[seq[_stage]], applicableRow + 1, _rowCriteria[applicableRow].Name, _moduleId);
+        Debug.LogFormat("[Simon Screams #{2}] Stage {0} expected keypresses: {1}", _stage + 1, _expectedInput[_stage].Select(ix => _colors[ix]).JoinString(", "), _moduleId);
     }
 }
