@@ -194,10 +194,10 @@ public class SimonScreamsModule : MonoBehaviour
 
     private void HandlePress(int ix)
     {
-        Buttons[ix].AddInteractionPunch();
-
         if (!_isActivated || _isSolved)
             return;
+
+        Buttons[ix].AddInteractionPunch();
 
         _makeSounds = true;
         Audio.PlaySoundAtTransform("Sound" + (ix + 7), Buttons[ix].transform);
