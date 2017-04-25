@@ -340,4 +340,23 @@ public class SimonScreamsModule : MonoBehaviour
         Debug.LogFormat("[Simon Screams #{4}] Stage {0} column={1}, row={2} ({3})", _stage + 1, _colors[seq[_stage]], applicableRow + 1, _rowCriteria[applicableRow].Name, _moduleId);
         Debug.LogFormat("[Simon Screams #{2}] Stage {0} expected keypresses: {1}", _stage + 1, _expectedInput[_stage].Select(ix => _colors[ix]).JoinString(", "), _moduleId);
     }
+
+    KMSelectable[] ProcessTwitchCommand(string command)
+    {
+        var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        if (pieces.Length == 0 || pieces[0] != "press")
+            return null;
+
+        var list = new List<KMSelectable>();
+        var colors = new[] { SimonColor.Red, SimonColor.Orange, SimonColor.Yellow, SimonColor.Green, SimonColor.Blue, SimonColor.Purple };
+        var colorsStr = colors.Select(c => c.ToString().ToLowerInvariant()).ToArray();
+        foreach (var piece in pieces.Skip(1))
+        {
+            var ix = colorsStr.IndexOf(cs => cs.Equals(piece, StringComparison.InvariantCultureIgnoreCase) || (piece.Length == 1 && cs.StartsWith(piece)));
+            if (ix == -1)
+                return null;
+            list.Add(Buttons[Array.IndexOf(_colors, colors[ix])]);
+        }
+        return list.ToArray();
+    }
 }
