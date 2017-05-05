@@ -341,22 +341,32 @@ public class SimonScreamsModule : MonoBehaviour
         Debug.LogFormat("[Simon Screams #{2}] Stage {0} expected keypresses: {1}", _stage + 1, _expectedInput[_stage].Select(ix => _colors[ix]).JoinString(", "), _moduleId);
     }
 
-    KMSelectable[] ProcessTwitchCommand(string command)
+    IEnumerator ProcessTwitchCommand(string command)
     {
         var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
         if (pieces.Length == 0 || pieces[0] != "press")
-            return null;
+            yield break;
 
-        var list = new List<KMSelectable>();
+        var buttons = new List<KMSelectable>();
         var colors = new[] { SimonColor.Red, SimonColor.Orange, SimonColor.Yellow, SimonColor.Green, SimonColor.Blue, SimonColor.Purple };
         var colorsStr = colors.Select(c => c.ToString().ToLowerInvariant()).ToArray();
         foreach (var piece in pieces.Skip(1))
         {
             var ix = colorsStr.IndexOf(cs => cs.Equals(piece, StringComparison.InvariantCultureIgnoreCase) || (piece.Length == 1 && cs.StartsWith(piece)));
             if (ix == -1)
-                return null;
-            list.Add(Buttons[Array.IndexOf(_colors, colors[ix])]);
+                yield break;
+            buttons.Add(Buttons[Array.IndexOf(_colors, colors[ix])]);
         }
-        return list.ToArray();
+
+        foreach (var btn in buttons)
+        {
+            btn.OnInteract();
+            if (_isSolved)
+            {
+                yield return "solve";
+                yield break;
+            }
+            yield return new WaitForSeconds(.1f);
+        }
     }
 }
