@@ -20,7 +20,7 @@ namespace SimonScreams
     }
     sealed class Row3Criterion : Criterion
     {
-        public override string Name { get { return "Otherwise, if at least two of red, yellow, and blue didn’t flash"; } }
+        public override string Name { get { return "Otherwise, if at most one color flashed out of red, yellow, and blue"; } }
         public override bool Check(int[] seq, int[] ryb) { return ryb.Count(color => !seq.Contains(color)) >= 2; }
     }
     sealed class Row4Criterion : Criterion
