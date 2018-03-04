@@ -119,12 +119,12 @@ public class SimonScreamsModule : MonoBehaviour
         Debug.LogFormat("[Simon Screams #{1}] Colors in clockwise order are: {0}", _colors.JoinString(", "), _moduleId);
 
         startBlinker(1.5f);
-        alignFlaps(0, 90, 1);
+        alignFlaps(0, 90, .01f);
         Module.OnActivate = ActivateModule;
         Bomb.OnBombExploded = delegate { StopAllCoroutines(); };
     }
 
-    private void alignFlaps(int firstBtnIx, float angle, int steps, bool animation = false)
+    private void alignFlaps(int firstBtnIx, float angle, float duration, bool animation = false)
     {
         if (animation)
             StartCoroutine(raiseFlapsParent());
@@ -133,7 +133,7 @@ public class SimonScreamsModule : MonoBehaviour
             var btnIx = (i + firstBtnIx) % 6;
             var flapOutline = _unrotatedFlapOutline.Select(p => Quaternion.Euler(0, -(60 * btnIx - 15), 0) * p).ToArray();
             for (int flapIx = 0; flapIx < 4; flapIx++)
-                StartCoroutine(rotateFlap(flapOutline, flapIx, btnIx, angle, steps, animation ? 1f + i * .3f : (float?) null));
+                StartCoroutine(rotateFlap(flapOutline, flapIx, btnIx, angle, duration, animation ? 1f + i * .3f : (float?) null));
             if (animation)
                 StartCoroutine(lowerButton((i + firstBtnIx) % 6, .5f + i * .3f));
         }
@@ -142,37 +142,50 @@ public class SimonScreamsModule : MonoBehaviour
     private IEnumerator raiseFlapsParent()
     {
         yield return new WaitForSeconds(.3f);
-        for (int iter = 0; iter < 90; iter++)
+        const float duration = 1.5f;
+        var elapsed = 0f;
+        while (elapsed < duration)
         {
-            FlapsParent.localPosition = new Vector3(0, 0.009f + .0000778f * iter, 0);
             yield return null;
+            elapsed += Time.deltaTime;
+            FlapsParent.localPosition = new Vector3(0, 0.009f + .007f * Mathf.Min(1, elapsed / duration), 0);
         }
     }
 
     private IEnumerator lowerButton(int btnIx, float delay)
     {
         yield return new WaitForSeconds(delay);
-        for (int iter = 0; iter < 90; iter++)
+        const float duration = 1.5f;
+        var elapsed = 0f;
+        while (elapsed < duration)
         {
-            Buttons[btnIx].transform.localPosition = new Vector3(0, -.0002f * iter, 0);
             yield return null;
+            elapsed += Time.deltaTime;
+            Buttons[btnIx].transform.localPosition = new Vector3(0, -.018f * Mathf.Min(1, elapsed / duration), 0);
         }
     }
 
-    private IEnumerator rotateFlap(Vector3[] flapOutline, int flapIx, int btnIx, float angle, int steps, float? initialDelay)
+    private IEnumerator rotateFlap(Vector3[] flapOutline, int flapIx, int btnIx, float angle, float duration, float? initialDelay)
     {
-        if (initialDelay != null)
-            yield return new WaitForSeconds(initialDelay.Value);
+        yield return initialDelay != null ? new WaitForSeconds(initialDelay.Value) : null;
 
-        var flap = FlapsParent.FindChild("Flap" + (4 * btnIx + flapIx));
-
-        for (int iter = 0; iter < steps; iter++)
+        var flap = FlapsParent.Find("Flap" + (4 * btnIx + flapIx));
+        var elapsed = 0f;
+        while (elapsed < duration)
         {
+            yield return null;
+            var origDelta = Time.deltaTime;
+            var newDelta = origDelta;
+            if (elapsed + origDelta > duration)
+                newDelta = duration - elapsed;
+            elapsed += origDelta;
+
+            // These values are calculated inside the while loop because localToWorldMatrix changes if the bomb is rotated
             var pt = flap.localToWorldMatrix * new Vector4(-flapOutline[flapIx].x, flapOutline[flapIx].y, flapOutline[flapIx].z, 1);
             var pt2 = flap.localToWorldMatrix * new Vector4(-flapOutline[(flapIx + 1) % 4].x, flapOutline[(flapIx + 1) % 4].y, flapOutline[(flapIx + 1) % 4].z, 1);
             var axis = new Vector3(pt2.x - pt.x, pt2.y - pt.y, pt2.z - pt.z);
-            flap.RotateAround(pt, axis, -angle);
-            yield return null;
+
+            flap.RotateAround(pt, axis, -angle * newDelta / duration);
         }
     }
 
@@ -242,7 +255,7 @@ public class SimonScreamsModule : MonoBehaviour
 
     private IEnumerator victory(int ix)
     {
-        alignFlaps(ix, -1, 90, animation: true);
+        alignFlaps(ix, -90, 1.5f, animation: true);
         if (_blinker != null)
             StopCoroutine(_blinker);
         foreach (var light in Lights)
