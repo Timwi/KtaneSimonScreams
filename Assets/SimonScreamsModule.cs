@@ -24,8 +24,9 @@ public class SimonScreamsModule : MonoBehaviour
     public Transform FlapsParent;
     public Transform KeypadParent;
 
-    public Mesh Sphere;
-    public Material SphereMat;
+    public MeshRenderer[] Leds;
+    public Material UnlitLed;
+    public Material LitLed;
 
     private SimonColor[] _colors;
     private int[][] _sequences;
@@ -115,6 +116,9 @@ public class SimonScreamsModule : MonoBehaviour
             var j = i;
             Buttons[i].OnInteract = delegate { HandlePress(j); return false; };
         }
+
+        for (int i = 0; i < 3; i++)
+            Leds[i].material = UnlitLed;
 
         Debug.LogFormat("[Simon Screams #{1}] Colors in clockwise order are: {0}", _colors.JoinString(", "), _moduleId);
 
@@ -229,6 +233,7 @@ public class SimonScreamsModule : MonoBehaviour
             var logStage = false;
             if (_subprogress == _expectedInput[_stage].Length)
             {
+                Leds[_stage].material = LitLed;
                 _stage++;
                 _subprogress = 0;
                 if (_stage == _expectedInput.Length)
