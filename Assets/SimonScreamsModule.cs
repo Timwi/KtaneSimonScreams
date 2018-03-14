@@ -359,6 +359,10 @@ public class SimonScreamsModule : MonoBehaviour
         Debug.LogFormat("[Simon Screams #{2}] Stage {0} expected keypresses: {1}", _stage + 1, _expectedInput[_stage].Select(ix => _colors[ix]).JoinString(", "), _moduleId);
     }
 
+#pragma warning disable 414
+    private string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple.";
+#pragma warning restore 414
+
     IEnumerator ProcessTwitchCommand(string command)
     {
         var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -375,6 +379,8 @@ public class SimonScreamsModule : MonoBehaviour
                 yield break;
             buttons.Add(Buttons[Array.IndexOf(_colors, colors[ix])]);
         }
+
+        yield return null;
 
         foreach (var btn in buttons)
         {
