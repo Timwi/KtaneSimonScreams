@@ -363,6 +363,7 @@ public class SimonScreamsModule : MonoBehaviour
 
 #pragma warning disable 414
     private string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple. Use “!{0} disco” or “!{0} lasershow” to have a good time.";
+    private bool TwitchShouldCancelCommand = false;
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
@@ -387,12 +388,19 @@ public class SimonScreamsModule : MonoBehaviour
                     yield return new WaitForSeconds(.1f);
                 }
                 Lights[ix].enabled = false;
+                if (TwitchShouldCancelCommand)
+                    break;
             }
             for (int j = 0; j < 3; j++)
                 Leds[j].material = j < _stage ? LitLed : UnlitLed;
             startBlinker(1.5f);
+            if (TwitchShouldCancelCommand)
+            {
+                yield return "sendtochat Aw man! Disco cut short!";
+                yield return "cancelled";
+            }
         }
-        else if (pieces.Length == 1 && pieces[0] == "lasershow")
+        else if ((pieces.Length == 1 && pieces[0] == "lasershow") || (pieces.Length == 2 && pieces[0] == "laser" && pieces[1] == "show"))
         {
             if (_blinker != null)
                 StopCoroutine(_blinker);
@@ -411,6 +419,8 @@ public class SimonScreamsModule : MonoBehaviour
                     yield return new WaitForSeconds(.1f);
                     Leds[i % 3].material = UnlitLed;
                     Lights[((j % 2 == 0 ? i : 12 - i) + ix) % 6].enabled = false;
+                    if (TwitchShouldCancelCommand)
+                        goto cutShort;
                 }
                 Audio.PlaySoundAtTransform("Victory", Buttons[ix].transform);
                 for (int i = 0; i < (j == 3 ? 13 : 12); i++)
@@ -422,12 +432,20 @@ public class SimonScreamsModule : MonoBehaviour
                     Lights[(i + ix) % 6].enabled = false;
                     Lights[(12 - i + ix) % 6].enabled = false;
                     Leds[i % 3].material = UnlitLed;
+                    if (TwitchShouldCancelCommand)
+                        goto cutShort;
                 }
             }
 
+            cutShort:;
             for (int j = 0; j < 3; j++)
                 Leds[j].material = j < _stage ? LitLed : UnlitLed;
             startBlinker(.5f);
+            if (TwitchShouldCancelCommand)
+            {
+                yield return "sendtochat Aw man! Laser show cut short!";
+                yield return "cancelled";
+            }
         }
         else if (pieces.Length > 1 && pieces[0] == "press")
         {
