@@ -199,7 +199,7 @@ public class SimonScreamsModule : MonoBehaviour
             StopCoroutine(_blinker);
         foreach (var light in Lights)
             light.enabled = false;
-        Invoke("startBlinker", delay);
+        _blinker = StartCoroutine(runBlinker(delay));
     }
 
     private void startBlinker()
@@ -281,8 +281,10 @@ public class SimonScreamsModule : MonoBehaviour
         Module.HandlePass();
     }
 
-    private IEnumerator runBlinker()
+    private IEnumerator runBlinker(float delay = 0)
     {
+        yield return new WaitForSeconds(delay);
+
         if (_subprogress != 0)
         {
             Debug.LogFormat("[Simon Screams #{1}] Waited too long; input reset. Now at stage {0} key 1.", _stage + 1, _moduleId);
@@ -360,37 +362,98 @@ public class SimonScreamsModule : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple.";
+    private string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple. Use “!{0} disco” or “!{0} lasershow” to have a good time.";
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
     {
         var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        if (pieces.Length == 0 || pieces[0] != "press")
-            yield break;
 
-        var buttons = new List<KMSelectable>();
-        var colors = new[] { SimonColor.Red, SimonColor.Orange, SimonColor.Yellow, SimonColor.Green, SimonColor.Blue, SimonColor.Purple };
-        var colorsStr = colors.Select(c => c.ToString().ToLowerInvariant()).ToArray();
-        foreach (var piece in pieces.Skip(1))
+        if (pieces.Length == 1 && pieces[0] == "disco")
         {
-            var ix = colorsStr.IndexOf(cs => cs.Equals(piece, StringComparison.InvariantCultureIgnoreCase) || (piece.Length == 1 && cs.StartsWith(piece)));
-            if (ix == -1)
-                yield break;
-            buttons.Add(Buttons[Array.IndexOf(_colors, colors[ix])]);
-        }
-
-        yield return null;
-
-        foreach (var btn in buttons)
-        {
-            btn.OnInteract();
-            if (_isSolved)
+            if (_blinker != null)
+                StopCoroutine(_blinker);
+            foreach (var light in Lights)
+                light.enabled = false;
+            for (int i = 0; i < 31; i++)
             {
-                yield return "solve";
-                yield break;
+                var ix = Rnd.Range(0, 6);
+                Audio.PlaySoundAtTransform("Sound" + (ix + 1), Buttons[(int) _colors[ix]].transform);
+                Lights[ix].enabled = true;
+                for (int j = 0; j < 3; j++)
+                {
+                    for (int k = 0; k < 3; k++)
+                        Leds[k].material = Rnd.Range(0, 2) == 0 ? UnlitLed : LitLed;
+                    yield return new WaitForSeconds(.1f);
+                }
+                Lights[ix].enabled = false;
             }
-            yield return new WaitForSeconds(.1f);
+            for (int j = 0; j < 3; j++)
+                Leds[j].material = j < _stage ? LitLed : UnlitLed;
+            startBlinker(1.5f);
+        }
+        else if (pieces.Length == 1 && pieces[0] == "lasershow")
+        {
+            if (_blinker != null)
+                StopCoroutine(_blinker);
+            foreach (var light in Lights)
+                light.enabled = false;
+
+            for (int j = 0; j < 4; j++)
+            {
+                var ix = Rnd.Range(0, 6);
+                for (int i = 0; i < 12; i++)
+                {
+                    if (i % 3 == 0)
+                        Audio.PlaySoundAtTransform("Sound" + ((ix + i / 3) % 6 + 1), Buttons[(int) _colors[ix]].transform);
+                    Lights[((j % 2 == 0 ? i : 12 - i) + ix) % 6].enabled = true;
+                    Leds[i % 3].material = LitLed;
+                    yield return new WaitForSeconds(.1f);
+                    Leds[i % 3].material = UnlitLed;
+                    Lights[((j % 2 == 0 ? i : 12 - i) + ix) % 6].enabled = false;
+                }
+                Audio.PlaySoundAtTransform("Victory", Buttons[ix].transform);
+                for (int i = 0; i < (j == 3 ? 13 : 12); i++)
+                {
+                    Lights[(i + ix) % 6].enabled = true;
+                    Lights[(12 - i + ix) % 6].enabled = true;
+                    Leds[i % 3].material = LitLed;
+                    yield return new WaitForSeconds(.1f);
+                    Lights[(i + ix) % 6].enabled = false;
+                    Lights[(12 - i + ix) % 6].enabled = false;
+                    Leds[i % 3].material = UnlitLed;
+                }
+            }
+
+            for (int j = 0; j < 3; j++)
+                Leds[j].material = j < _stage ? LitLed : UnlitLed;
+            startBlinker(.5f);
+        }
+        else if (pieces.Length > 1 && pieces[0] == "press")
+        {
+            var buttons = new List<KMSelectable>();
+            var colors = new[] { SimonColor.Red, SimonColor.Orange, SimonColor.Yellow, SimonColor.Green, SimonColor.Blue, SimonColor.Purple };
+            var colorsStr = colors.Select(c => c.ToString().ToLowerInvariant()).ToArray();
+            foreach (var piece in pieces.Skip(1))
+            {
+                var ix = colorsStr.IndexOf(cs => cs.Equals(piece, StringComparison.InvariantCultureIgnoreCase) || (piece.Length == 1 && cs.StartsWith(piece)));
+                if (ix == -1)
+                    yield break;
+                buttons.Add(Buttons[Array.IndexOf(_colors, colors[ix])]);
+            }
+
+            yield return null;
+
+            foreach (var btn in buttons)
+            {
+                btn.OnInteract();
+                if (_isSolved)
+                {
+                    yield return "solve";
+                    yield break;
+                }
+                yield return new WaitForSeconds(.1f);
+            }
         }
     }
 }
