@@ -470,7 +470,7 @@ public class SimonScreamsModule : MonoBehaviour
                     yield return "solve";
                     yield break;
                 }
-                yield return new WaitForSeconds(.1f);
+                yield return new WaitForSeconds(.4f);
             }
         }
     }
