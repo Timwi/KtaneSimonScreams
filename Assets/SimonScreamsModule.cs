@@ -362,8 +362,8 @@ public class SimonScreamsModule : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple. Use “!{0} disco” or “!{0} lasershow” to have a good time.";
-    private bool TwitchShouldCancelCommand = false;
+    private readonly string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple. Use “!{0} disco” or “!{0} lasershow” to have a good time.";
+    private readonly bool TwitchShouldCancelCommand = false;
 #pragma warning restore 414
 
     IEnumerator ProcessTwitchCommand(string command)
@@ -371,107 +371,123 @@ public class SimonScreamsModule : MonoBehaviour
         var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
         if (pieces.Length == 1 && pieces[0] == "disco")
+            return disco();
+
+        if ((pieces.Length == 1 && pieces[0] == "lasershow") || (pieces.Length == 2 && pieces[0] == "laser" && pieces[1] == "show"))
+            return laserShow();
+
+        return processPress(pieces);
+    }
+
+    private IEnumerator disco()
+    {
+        if (_blinker != null)
+            StopCoroutine(_blinker);
+        foreach (var light in Lights)
+            light.enabled = false;
+        for (int i = 0; i < 31; i++)
         {
-            if (_blinker != null)
-                StopCoroutine(_blinker);
-            foreach (var light in Lights)
-                light.enabled = false;
-            for (int i = 0; i < 31; i++)
+            var ix = Rnd.Range(0, 6);
+            Audio.PlaySoundAtTransform("Sound" + (ix + 1), Buttons[(int) _colors[ix]].transform);
+            Lights[ix].enabled = true;
+            for (int j = 0; j < 3; j++)
             {
-                var ix = Rnd.Range(0, 6);
-                Audio.PlaySoundAtTransform("Sound" + (ix + 1), Buttons[(int) _colors[ix]].transform);
-                Lights[ix].enabled = true;
-                for (int j = 0; j < 3; j++)
-                {
-                    for (int k = 0; k < 3; k++)
-                        Leds[k].material = Rnd.Range(0, 2) == 0 ? UnlitLed : LitLed;
-                    yield return new WaitForSeconds(.1f);
-                }
-                Lights[ix].enabled = false;
+                for (int k = 0; k < 3; k++)
+                    Leds[k].material = Rnd.Range(0, 2) == 0 ? UnlitLed : LitLed;
+                yield return new WaitForSeconds(.1f);
+            }
+            Lights[ix].enabled = false;
+            if (TwitchShouldCancelCommand)
+                break;
+        }
+        for (int j = 0; j < 3; j++)
+            Leds[j].material = j < _stage ? LitLed : UnlitLed;
+        startBlinker(1.5f);
+        if (TwitchShouldCancelCommand)
+        {
+            yield return "sendtochat Aw man! Disco cut short!";
+            yield return "cancelled";
+        }
+        yield break;
+    }
+
+    private IEnumerator laserShow()
+    {
+        if (_blinker != null)
+            StopCoroutine(_blinker);
+        foreach (var light in Lights)
+            light.enabled = false;
+
+        for (int j = 0; j < 4; j++)
+        {
+            var ix = Rnd.Range(0, 6);
+            for (int i = 0; i < 12; i++)
+            {
+                if (i % 3 == 0)
+                    Audio.PlaySoundAtTransform("Sound" + ((ix + i / 3) % 6 + 1), Buttons[(int) _colors[ix]].transform);
+                Lights[((j % 2 == 0 ? i : 12 - i) + ix) % 6].enabled = true;
+                Leds[i % 3].material = LitLed;
+                yield return new WaitForSeconds(.1f);
+                Leds[i % 3].material = UnlitLed;
+                Lights[((j % 2 == 0 ? i : 12 - i) + ix) % 6].enabled = false;
                 if (TwitchShouldCancelCommand)
-                    break;
+                    goto cutShort;
             }
-            for (int j = 0; j < 3; j++)
-                Leds[j].material = j < _stage ? LitLed : UnlitLed;
-            startBlinker(1.5f);
-            if (TwitchShouldCancelCommand)
+            Audio.PlaySoundAtTransform("Victory", Buttons[ix].transform);
+            for (int i = 0; i < (j == 3 ? 13 : 12); i++)
             {
-                yield return "sendtochat Aw man! Disco cut short!";
-                yield return "cancelled";
+                Lights[(i + ix) % 6].enabled = true;
+                Lights[(12 - i + ix) % 6].enabled = true;
+                Leds[i % 3].material = LitLed;
+                yield return new WaitForSeconds(.1f);
+                Lights[(i + ix) % 6].enabled = false;
+                Lights[(12 - i + ix) % 6].enabled = false;
+                Leds[i % 3].material = UnlitLed;
+                if (TwitchShouldCancelCommand)
+                    goto cutShort;
             }
         }
-        else if ((pieces.Length == 1 && pieces[0] == "lasershow") || (pieces.Length == 2 && pieces[0] == "laser" && pieces[1] == "show"))
+
+        cutShort:;
+        for (int j = 0; j < 3; j++)
+            Leds[j].material = j < _stage ? LitLed : UnlitLed;
+        startBlinker(.5f);
+        if (TwitchShouldCancelCommand)
         {
-            if (_blinker != null)
-                StopCoroutine(_blinker);
-            foreach (var light in Lights)
-                light.enabled = false;
-
-            for (int j = 0; j < 4; j++)
-            {
-                var ix = Rnd.Range(0, 6);
-                for (int i = 0; i < 12; i++)
-                {
-                    if (i % 3 == 0)
-                        Audio.PlaySoundAtTransform("Sound" + ((ix + i / 3) % 6 + 1), Buttons[(int) _colors[ix]].transform);
-                    Lights[((j % 2 == 0 ? i : 12 - i) + ix) % 6].enabled = true;
-                    Leds[i % 3].material = LitLed;
-                    yield return new WaitForSeconds(.1f);
-                    Leds[i % 3].material = UnlitLed;
-                    Lights[((j % 2 == 0 ? i : 12 - i) + ix) % 6].enabled = false;
-                    if (TwitchShouldCancelCommand)
-                        goto cutShort;
-                }
-                Audio.PlaySoundAtTransform("Victory", Buttons[ix].transform);
-                for (int i = 0; i < (j == 3 ? 13 : 12); i++)
-                {
-                    Lights[(i + ix) % 6].enabled = true;
-                    Lights[(12 - i + ix) % 6].enabled = true;
-                    Leds[i % 3].material = LitLed;
-                    yield return new WaitForSeconds(.1f);
-                    Lights[(i + ix) % 6].enabled = false;
-                    Lights[(12 - i + ix) % 6].enabled = false;
-                    Leds[i % 3].material = UnlitLed;
-                    if (TwitchShouldCancelCommand)
-                        goto cutShort;
-                }
-            }
-
-            cutShort:;
-            for (int j = 0; j < 3; j++)
-                Leds[j].material = j < _stage ? LitLed : UnlitLed;
-            startBlinker(.5f);
-            if (TwitchShouldCancelCommand)
-            {
-                yield return "sendtochat Aw man! Laser show cut short!";
-                yield return "cancelled";
-            }
+            yield return "sendtochat Aw man! Laser show cut short!";
+            yield return "cancelled";
         }
-        else if (pieces.Length > 1 && pieces[0] == "press")
+        yield break;
+    }
+
+    private IEnumerator processPress(string[] pieces)
+    {
+        var skip = 0;
+        if (pieces.Length > 0 && pieces[0] == "press")
+            skip = 1;
+
+        var buttons = new List<KMSelectable>();
+        var colors = new[] { SimonColor.Red, SimonColor.Orange, SimonColor.Yellow, SimonColor.Green, SimonColor.Blue, SimonColor.Purple };
+        var colorsStr = colors.Select(c => c.ToString().ToLowerInvariant()).ToArray();
+        foreach (var piece in pieces.Skip(skip))
         {
-            var buttons = new List<KMSelectable>();
-            var colors = new[] { SimonColor.Red, SimonColor.Orange, SimonColor.Yellow, SimonColor.Green, SimonColor.Blue, SimonColor.Purple };
-            var colorsStr = colors.Select(c => c.ToString().ToLowerInvariant()).ToArray();
-            foreach (var piece in pieces.Skip(1))
-            {
-                var ix = colorsStr.IndexOf(cs => cs.Equals(piece, StringComparison.InvariantCultureIgnoreCase) || (piece.Length == 1 && cs.StartsWith(piece)));
-                if (ix == -1)
-                    yield break;
-                buttons.Add(Buttons[Array.IndexOf(_colors, colors[ix])]);
-            }
+            var ix = colorsStr.IndexOf(cs => cs.Equals(piece, StringComparison.InvariantCultureIgnoreCase) || (piece.Length == 1 && cs.StartsWith(piece)));
+            if (ix == -1)
+                yield break;
+            buttons.Add(Buttons[Array.IndexOf(_colors, colors[ix])]);
+        }
 
-            yield return null;
+        yield return null;
 
-            foreach (var btn in buttons)
+        foreach (var btn in buttons)
+        {
+            btn.OnInteract();
+            if (_isSolved)
             {
-                btn.OnInteract();
-                if (_isSolved)
-                {
-                    yield return "solve";
-                    yield break;
-                }
-                yield return new WaitForSeconds(.4f);
+                yield return "solve";
+                yield break;
             }
+            yield return new WaitForSeconds(.4f);
         }
     }
 }
