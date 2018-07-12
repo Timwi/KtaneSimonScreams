@@ -366,6 +366,16 @@ public class SimonScreamsModule : MonoBehaviour
     private readonly bool TwitchShouldCancelCommand = false;
 #pragma warning restore 414
 
+	private IEnumerator TwitchHandleForcedSolve()
+	{
+		yield return null;
+		while (!_isSolved)
+		{
+			HandlePress(_expectedInput[_stage][_subprogress]);
+			yield return new WaitForSeconds(0.4f);
+		}
+	}
+
     IEnumerator ProcessTwitchCommand(string command)
     {
         var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
