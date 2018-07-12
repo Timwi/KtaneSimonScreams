@@ -381,7 +381,9 @@ public class SimonScreamsModule : MonoBehaviour
 
     private IEnumerator disco()
     {
-        if (_blinker != null)
+	    yield return "antitroll Aw man! Can't play awesome disco track.";
+
+		if (_blinker != null)
             StopCoroutine(_blinker);
         foreach (var light in Lights)
             light.enabled = false;
@@ -413,7 +415,9 @@ public class SimonScreamsModule : MonoBehaviour
 
     private IEnumerator laserShow()
     {
-        if (_blinker != null)
+	    yield return "antitroll Aw man! I can't put on a laser show.";
+
+		if (_blinker != null)
             StopCoroutine(_blinker);
         foreach (var light in Lights)
             light.enabled = false;
