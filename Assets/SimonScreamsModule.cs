@@ -126,6 +126,10 @@ public class SimonScreamsModule : MonoBehaviour
         alignFlaps(0, 90, .01f);
         Module.OnActivate = ActivateModule;
         Bomb.OnBombExploded = delegate { StopAllCoroutines(); };
+
+        float scalar = transform.lossyScale.x;
+        foreach (Light light in Lights)
+            light.range *= scalar;
     }
 
     private void alignFlaps(int firstBtnIx, float angle, float duration, bool animation = false)
