@@ -2,9 +2,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using KModkit;
 using SimonScreams;
 using UnityEngine;
-
 using Rnd = UnityEngine.Random;
 
 /// <summary>
@@ -27,6 +27,7 @@ public class SimonScreamsModule : MonoBehaviour
     public MeshRenderer[] Leds;
     public Material UnlitLed;
     public Material LitLed;
+    public TextMesh[] ColorblindIndicators;
 
     private SimonColor[] _colors;
     private int[][] _sequences;
@@ -40,7 +41,7 @@ public class SimonScreamsModule : MonoBehaviour
     private Coroutine _blinker;
 
     private static Criterion[] _rowCriteria = new Criterion[] { new Row1Criterion(), new Row2Criterion(), new Row3Criterion(), new Row4Criterion(), new Row5Criterion(), new Row6Criterion() };
-    private static string[][] _largeTable = Ut.NewArray(
+    private static readonly string[][] _largeTable = Ut.NewArray(
         new[] { "FFC", "CEH", "HAF", "ECD", "DDE", "AHA" },
         new[] { "AHF", "DFC", "ECH", "CDE", "FEA", "HAD" },
         new[] { "DED", "ECF", "FHE", "HAA", "AFH", "CDC" },
@@ -107,6 +108,15 @@ public class SimonScreamsModule : MonoBehaviour
         _sequences = generateSequences();
         _makeSounds = false;
 
+        if (GetComponent<KMColorblindMode>().ColorblindModeActive)
+        {
+            for (int i = 0; i < 6; i++)
+            {
+                ColorblindIndicators[i].text = _colors[i].ToString().ToUpperInvariant();
+                ColorblindIndicators[i].gameObject.SetActive(true);
+            }
+        }
+
         for (int i = 0; i < 6; i++)
         {
             var mat = Materials[(int) _colors[i]];
@@ -163,6 +173,7 @@ public class SimonScreamsModule : MonoBehaviour
     private IEnumerator lowerButton(int btnIx, float delay)
     {
         yield return new WaitForSeconds(delay);
+        ColorblindIndicators[btnIx].gameObject.SetActive(false);
         const float duration = 1.5f;
         var elapsed = 0f;
         while (elapsed < duration)
@@ -370,15 +381,15 @@ public class SimonScreamsModule : MonoBehaviour
     private readonly bool TwitchShouldCancelCommand = false;
 #pragma warning restore 414
 
-	private IEnumerator TwitchHandleForcedSolve()
-	{
-		yield return null;
-		while (!_isSolved)
-		{
-			HandlePress(_expectedInput[_stage][_subprogress]);
-			yield return new WaitForSeconds(0.4f);
-		}
-	}
+    private IEnumerator TwitchHandleForcedSolve()
+    {
+        yield return null;
+        while (!_isSolved)
+        {
+            HandlePress(_expectedInput[_stage][_subprogress]);
+            yield return new WaitForSeconds(0.4f);
+        }
+    }
 
     IEnumerator ProcessTwitchCommand(string command)
     {
@@ -395,9 +406,9 @@ public class SimonScreamsModule : MonoBehaviour
 
     private IEnumerator disco()
     {
-	    yield return "antitroll Aw man! Can't play awesome disco track.";
+        yield return "antitroll Aw man! Can't play awesome disco track.";
 
-		if (_blinker != null)
+        if (_blinker != null)
             StopCoroutine(_blinker);
         foreach (var light in Lights)
             light.enabled = false;
@@ -429,9 +440,9 @@ public class SimonScreamsModule : MonoBehaviour
 
     private IEnumerator laserShow()
     {
-	    yield return "antitroll Aw man! I can't put on a laser show.";
+        yield return "antitroll Aw man! I can't put on a laser show.";
 
-		if (_blinker != null)
+        if (_blinker != null)
             StopCoroutine(_blinker);
         foreach (var light in Lights)
             light.enabled = false;
