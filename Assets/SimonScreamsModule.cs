@@ -370,6 +370,16 @@ public class SimonScreamsModule : MonoBehaviour
     private readonly bool TwitchShouldCancelCommand = false;
 #pragma warning restore 414
 
+	private IEnumerator TwitchHandleForcedSolve()
+	{
+		yield return null;
+		while (!_isSolved)
+		{
+			HandlePress(_expectedInput[_stage][_subprogress]);
+			yield return new WaitForSeconds(0.4f);
+		}
+	}
+
     IEnumerator ProcessTwitchCommand(string command)
     {
         var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -385,7 +395,9 @@ public class SimonScreamsModule : MonoBehaviour
 
     private IEnumerator disco()
     {
-        if (_blinker != null)
+	    yield return "antitroll Aw man! Can't play awesome disco track.";
+
+		if (_blinker != null)
             StopCoroutine(_blinker);
         foreach (var light in Lights)
             light.enabled = false;
@@ -417,7 +429,9 @@ public class SimonScreamsModule : MonoBehaviour
 
     private IEnumerator laserShow()
     {
-        if (_blinker != null)
+	    yield return "antitroll Aw man! I can't put on a laser show.";
+
+		if (_blinker != null)
             StopCoroutine(_blinker);
         foreach (var light in Lights)
             light.enabled = false;
