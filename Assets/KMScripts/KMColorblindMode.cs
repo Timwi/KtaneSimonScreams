@@ -22,6 +22,7 @@ public class KMColorblindMode : MonoBehaviour
             if (!File.Exists(settingsPath)) WriteSettings(new ColorblindModeSettings());
 
             ColorblindModeSettings settings = JsonConvert.DeserializeObject<ColorblindModeSettings>(File.ReadAllText(settingsPath));
+            WriteSettings(settings);
 
             string moduleID = null;
             bool? moduleEnabled = null;
@@ -38,8 +39,10 @@ public class KMColorblindMode : MonoBehaviour
             }
 
             if (moduleID != null && !settings.EnabledModules.TryGetValue(moduleID, out moduleEnabled))
+            {
                 settings.EnabledModules[moduleID] = null;
-            WriteSettings(settings);
+                WriteSettings(settings);
+            }
 
             return moduleEnabled ?? settings.Enabled;
         }
