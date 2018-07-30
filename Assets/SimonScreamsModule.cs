@@ -108,13 +108,11 @@ public class SimonScreamsModule : MonoBehaviour
         _sequences = generateSequences();
         _makeSounds = false;
 
-        if (GetComponent<KMColorblindMode>().ColorblindModeActive)
+        var colorblind = GetComponent<KMColorblindMode>().ColorblindModeActive;
+        for (int i = 0; i < 6; i++)
         {
-            for (int i = 0; i < 6; i++)
-            {
-                ColorblindIndicators[i].text = _colors[i].ToString().ToUpperInvariant();
-                ColorblindIndicators[i].gameObject.SetActive(true);
-            }
+            ColorblindIndicators[i].text = _colors[i].ToString().ToUpperInvariant();
+            ColorblindIndicators[i].gameObject.SetActive(colorblind);
         }
 
         for (int i = 0; i < 6; i++)
@@ -377,7 +375,7 @@ public class SimonScreamsModule : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple. Use “!{0} disco” or “!{0} lasershow” to have a good time.";
+    private readonly string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple. Use “!{0} disco” or “!{0} lasershow” to have a good time. Use “!{0} colorblind” to show the colors of the buttons.";
     private readonly bool TwitchShouldCancelCommand = false;
 #pragma warning restore 414
 
@@ -395,6 +393,9 @@ public class SimonScreamsModule : MonoBehaviour
     {
         var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
+        if (pieces.Length == 1 && pieces[0] == "colorblind")
+            return enableColorblindMode();
+
         if (pieces.Length == 1 && pieces[0] == "disco")
             return disco();
 
@@ -402,6 +403,16 @@ public class SimonScreamsModule : MonoBehaviour
             return laserShow();
 
         return processPress(pieces);
+    }
+
+    private IEnumerator enableColorblindMode()
+    {
+        yield return null;
+        for (int i = 0; i < 6; i++)
+        {
+            yield return new WaitForSeconds(.15f);
+            ColorblindIndicators[i].gameObject.SetActive(true);
+        }
     }
 
     private IEnumerator disco()
