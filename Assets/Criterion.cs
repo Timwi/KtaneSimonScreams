@@ -1,41 +1,48 @@
-﻿using System.Linq;
+﻿using System;
 
 namespace SimonScreams
 {
-    abstract class Criterion
+    sealed class Criterion
     {
-        public abstract string Name { get; }
-        public abstract bool Check(int[] seq, int[] ryb);
+        public string Name { get; private set; }
+        public Func<int[], bool> Check { get; private set; }
+        public Criterion(string name, Func<int[], bool> check)
+        {
+            Name = name;
+            Check = check;
+        }
     }
 
-    sealed class Row1Criterion : Criterion
+    sealed class SmallTableCriterion
     {
-        public override string Name { get { return "If three adjacent colors flashed in clockwise order"; } }
-        public override bool Check(int[] seq, int[] ryb) { return Enumerable.Range(0, seq.Length - 2).Any(ix => seq[ix + 1] == (seq[ix] + 1) % 6 && seq[ix + 2] == (seq[ix] + 2) % 6); }
+        public string Name { get; private set; }
+        public Func<KMBombInfo, bool> Check { get; private set; }
+        public SmallTableCriterion(string name, Func<KMBombInfo, bool> check)
+        {
+            Name = name;
+            Check = check;
+        }
     }
-    sealed class Row2Criterion : Criterion
+
+    abstract class CriterionGenerator
     {
-        public override string Name { get { return "Otherwise, if a color flashed, then an adjacent color, then the first again"; } }
-        public override bool Check(int[] seq, int[] ryb) { return Enumerable.Range(0, seq.Length - 2).Any(ix => seq[ix + 2] == seq[ix] && (seq[ix + 1] == (seq[ix] + 1) % 6 || seq[ix + 1] == (seq[ix] + 5) % 6)); }
+        public int Probability { get; private set; }
+        public CriterionGenerator(int probability) { Probability = probability; }
+        public abstract bool RequiresColors { get; }
+        public abstract Criterion GetCriterion(SimonColor[] colors, int[] colorIxs);
     }
-    sealed class Row3Criterion : Criterion
+    sealed class SpecificCriterion : CriterionGenerator
     {
-        public override string Name { get { return "Otherwise, if at most one color flashed out of red, yellow, and blue"; } }
-        public override bool Check(int[] seq, int[] ryb) { return ryb.Count(color => !seq.Contains(color)) >= 2; }
+        private readonly Criterion _criterion;
+        public SpecificCriterion(int probability, Criterion criterion) : base(probability) { _criterion = criterion; }
+        public override bool RequiresColors { get { return false; } }
+        public override Criterion GetCriterion(SimonColor[] colors, int[] colorIxs) { return _criterion; }
     }
-    sealed class Row4Criterion : Criterion
+    sealed class CriterionFromColors : CriterionGenerator
     {
-        public override string Name { get { return "Otherwise, if there are two colors opposite each other that didn’t flash"; } }
-        public override bool Check(int[] seq, int[] ryb) { return Enumerable.Range(0, 3).Any(col => !seq.Contains(col) && !seq.Contains(col + 3)); }
-    }
-    sealed class Row5Criterion : Criterion
-    {
-        public override string Name { get { return "Otherwise, if two adjacent colors flashed in clockwise order"; } }
-        public override bool Check(int[] seq, int[] ryb) { return Enumerable.Range(0, seq.Length - 1).Any(ix => seq[ix + 1] == (seq[ix] + 1) % 6); }
-    }
-    sealed class Row6Criterion : Criterion
-    {
-        public override string Name { get { return "Otherwise"; } }
-        public override bool Check(int[] seq, int[] ryb) { return true; }
+        private readonly Func<SimonColor[], int[], Criterion> _generator;
+        public CriterionFromColors(int probability, Func<SimonColor[], int[], Criterion> generator) : base(probability) { _generator = generator; }
+        public override bool RequiresColors { get { return true; } }
+        public override Criterion GetCriterion(SimonColor[] colors, int[] colorIxs) { return _generator(colors, colorIxs); }
     }
 }

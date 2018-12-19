@@ -16,6 +16,7 @@ public class SimonScreamsModule : MonoBehaviour
     public KMBombInfo Bomb;
     public KMBombModule Module;
     public KMAudio Audio;
+    public KMRuleSeedable RuleSeedable;
 
     public KMSelectable MainSelectable;
     public KMSelectable[] Buttons;
@@ -34,54 +35,84 @@ public class SimonScreamsModule : MonoBehaviour
     private int[][] _expectedInput;
     private int _stage;
     private int _subprogress;
-    private bool _isActivated;
     private bool _isSolved;
-    private int _red, _yellow, _blue;
     private bool _makeSounds;
     private Coroutine _blinker;
 
-    private static Criterion[] _rowCriteria = new Criterion[] { new Row1Criterion(), new Row2Criterion(), new Row3Criterion(), new Row4Criterion(), new Row5Criterion(), new Row6Criterion() };
-    private static readonly string[][] _largeTable = Ut.NewArray(
+    private const int numStages = 3, minFirstStageLength = 3, maxFirstStageLength = 5, minStageExtra = 1, maxStageExtra = 2;
+    private static readonly string _smallTableColumns = "ACDEFH";
+
+    private Criterion[] _rowCriteria;
+    private string[][] _largeTable;
+    private SimonColor[][] _smallTable;
+    private SmallTableCriterion[] _smallTableRowCriteria;
+    private int[] _stageIxs;
+
+    private static readonly string[][] _largeTableSeed1 = Ut.NewArray(
         new[] { "FFC", "CEH", "HAF", "ECD", "DDE", "AHA" },
         new[] { "AHF", "DFC", "ECH", "CDE", "FEA", "HAD" },
         new[] { "DED", "ECF", "FHE", "HAA", "AFH", "CDC" },
         new[] { "HCE", "ADA", "CFD", "DHH", "EAC", "FEF" },
         new[] { "CAH", "FHD", "DDA", "AEC", "HCF", "EFE" },
-        new[] { "EDA", "HAE", "AEC", "FFF", "CHD", "DCH" }
-    );
-    private static string _smallTableColumns = "ACDEFH";
-    private static SimonColor[][] _smallTable = Ut.NewArray(
+        new[] { "EDA", "HAE", "AEC", "FFF", "CHD", "DCH" });
+    private static readonly SimonColor[][] _smallTableSeed1 = Ut.NewArray(
         new[] { SimonColor.Yellow, SimonColor.Orange, SimonColor.Green, SimonColor.Red, SimonColor.Blue, SimonColor.Purple },
         new[] { SimonColor.Purple, SimonColor.Yellow, SimonColor.Red, SimonColor.Blue, SimonColor.Orange, SimonColor.Green },
         new[] { SimonColor.Orange, SimonColor.Green, SimonColor.Blue, SimonColor.Purple, SimonColor.Red, SimonColor.Yellow },
         new[] { SimonColor.Green, SimonColor.Blue, SimonColor.Orange, SimonColor.Yellow, SimonColor.Purple, SimonColor.Red },
         new[] { SimonColor.Red, SimonColor.Purple, SimonColor.Yellow, SimonColor.Orange, SimonColor.Green, SimonColor.Blue },
-        new[] { SimonColor.Blue, SimonColor.Red, SimonColor.Purple, SimonColor.Green, SimonColor.Yellow, SimonColor.Orange }
-    );
-    private static Func<KMBombInfo, bool>[] _smallTableRowCriteria = Ut.NewArray<Func<KMBombInfo, bool>>(
-        m => m.GetIndicators().Count() >= 3,
-        m => m.GetPortCount() >= 3,
-        m => m.GetSerialNumberNumbers().Count() >= 3,
-        m => m.GetSerialNumberLetters().Count() >= 3,
-        m => m.GetBatteryCount() >= 3,
-        m => m.GetBatteryHolderCount() >= 3
-    );
-    private static string[] _smallTableRowCriteriaNames = Ut.NewArray(
-        "≥ 3 indicators",
-        "≥ 3 ports",
-        "≥ 3 numbers in serial number",
-        "≥ 3 letters in serial number",
-        "≥ 3 batteries",
-        "≥ 3 battery holders"
-    );
+        new[] { SimonColor.Blue, SimonColor.Red, SimonColor.Purple, SimonColor.Green, SimonColor.Yellow, SimonColor.Orange });
 
-    private const int numStages = 3, minFirstStageLength = 3, maxFirstStageLength = 5, minStageExtra = 1, maxStageExtra = 2;
-
-    private static Vector3[] _unrotatedFlapOutline;
+    private static bool matchesPattern(int[] seq, params int[] offsets) { return Enumerable.Range(0, seq.Length - offsets.Length).Any(ix => Enumerable.Range(0, offsets.Length).All(offsetIx => seq[ix + offsetIx + 1] == (seq[ix] + offsets[offsetIx]) % 6)); }
+    private static readonly CriterionGenerator[] _allRowCriteria = Ut.NewArray<CriterionGenerator>(
+        new SpecificCriterion(5, new Criterion("every color flashed at least once", seq => Enumerable.Range(0, 6).Count(col => !seq.Contains(col)) == 0)),
+        new SpecificCriterion(12, new Criterion("three colors, each two apart, flashed in clockwise order", seq => matchesPattern(seq, 2, 4))),
+        new SpecificCriterion(22, new Criterion("a color flashed, then an adjacent color, then the first again", seq => matchesPattern(seq, 1, 0) || matchesPattern(seq, 5, 0))),
+        new SpecificCriterion(12, new Criterion("three adjacent colors flashed in counter-clockwise order", seq => matchesPattern(seq, 5, 4))),
+        new SpecificCriterion(12, new Criterion("three adjacent colors flashed in clockwise order", seq => matchesPattern(seq, 1, 2))),
+        new SpecificCriterion(12, new Criterion("a color flashed, then the one opposite, then the first again", seq => matchesPattern(seq, 3, 0))),
+        new SpecificCriterion(10, new Criterion("three adjacent colors did not flash", seq => Enumerable.Range(0, 6).Any(col => !seq.Contains(col) && !seq.Contains((col + 1) % 6) && !seq.Contains((col + 2) % 6)))),
+        new SpecificCriterion(17, new Criterion("the colors flashing first and last are the same", seq => seq[0] == seq.Last())),
+        new SpecificCriterion(12, new Criterion("three colors, each two apart, flashed in counter-clockwise order", seq => matchesPattern(seq, 4, 2))),
+        new SpecificCriterion(23, new Criterion("a color flashed, then a color two away, then the first again", seq => matchesPattern(seq, 2, 0) || matchesPattern(seq, 4, 0))),
+        new SpecificCriterion(26, new Criterion("a color flashed, then one adjacent, then the one opposite that", seq => matchesPattern(seq, 1, 4) || matchesPattern(seq, 5, 2))),
+        new SpecificCriterion(26, new Criterion("a color flashed, then one adjacent, then the one opposite the first", seq => matchesPattern(seq, 1, 3) || matchesPattern(seq, 5, 3))),
+        new SpecificCriterion(26, new Criterion("a color flashed, then a color two away, then the one opposite that", seq => matchesPattern(seq, 2, 5) || matchesPattern(seq, 4, 1))),
+        new SpecificCriterion(26, new Criterion("a color flashed, then a color two away, then the one opposite the first", seq => matchesPattern(seq, 2, 3) || matchesPattern(seq, 4, 3))),
+        new CriterionFromColors(23, (colors, colorIxs) => new Criterion(string.Format("at most one color flashed out of {0}, {1}, and {2}", colors[0], colors[1], colors[2]), seq => colorIxs.Count(cIx => seq.Contains(cIx)) <= 1)),
+        new SpecificCriterion(26, new Criterion("a color flashed, then the one opposite, then one adjacent to the first", seq => matchesPattern(seq, 3, 1) || matchesPattern(seq, 3, 5))),
+        new SpecificCriterion(22, new Criterion("no color flashed more than once", seq => Enumerable.Range(0, 6).All(col => seq.Count(c => c == col) <= 1))),
+        new SpecificCriterion(26, new Criterion("a color flashed, then the one opposite, then one adjacent to that", seq => matchesPattern(seq, 3, 2) || matchesPattern(seq, 3, 4))),
+        new SpecificCriterion(24, new Criterion("exactly two colors flashed exactly twice", seq => Enumerable.Range(0, 6).Count(col => seq.Count(c => c == col) == 2) == 2)),
+        new SpecificCriterion(42, new Criterion("there are two colors adjacent to each other that didn’t flash", seq => Enumerable.Range(0, 6).Any(col => !seq.Contains(col) && !seq.Contains((col + 1) % 6)))),
+        new SpecificCriterion(27, new Criterion("there is exactly one color that didn’t flash", seq => Enumerable.Range(0, 6).Count(col => !seq.Contains(col)) == 1)),
+        new SpecificCriterion(28, new Criterion("no color flashed exactly twice", seq => Enumerable.Range(0, 6).All(col => seq.Count(c => c == col) != 2))),
+        new SpecificCriterion(29, new Criterion("there are at least three colors that didn’t flash", seq => Enumerable.Range(0, 6).Count(col => !seq.Contains(col)) >= 3)),
+        new SpecificCriterion(30, new Criterion("exactly two colors flashed more than once", seq => Enumerable.Range(0, 6).Count(col => seq.Count(c => c == col) > 1) == 2)),
+        new SpecificCriterion(33, new Criterion("the colors flashing first and last are adjacent", seq => seq[0] == (seq.Last() + 1) % 6 || seq[0] == (seq.Last() + 5) % 6)),
+        new SpecificCriterion(38, new Criterion("exactly one color flashed more than once", seq => Enumerable.Range(0, 6).Count(col => seq.Count(c => c == col) > 1) == 1)),
+        new SpecificCriterion(44, new Criterion("there are two colors two away from each other that didn’t flash", seq => Enumerable.Range(0, 6).Any(col => !seq.Contains(col) && !seq.Contains((col + 2) % 6)))),
+        new SpecificCriterion(26, new Criterion("there are two colors opposite each other that didn’t flash", seq => Enumerable.Range(0, 3).Any(col => !seq.Contains(col) && !seq.Contains(col + 3)))),
+        new SpecificCriterion(40, new Criterion("there are exactly two colors that didn’t flash", seq => Enumerable.Range(0, 6).Count(col => !seq.Contains(col)) == 2)),
+        new SpecificCriterion(41, new Criterion("exactly one color flashed exactly twice", seq => Enumerable.Range(0, 6).Count(col => seq.Count(c => c == col) == 2) == 1)),
+        new SpecificCriterion(48, new Criterion("the number of distinct colors that flashed is even", seq => Enumerable.Range(0, 6).Count(col => seq.Contains(col)) % 2 == 0)),
+        new SpecificCriterion(39, new Criterion("no two adjacent colors flashed in clockwise order", seq => !matchesPattern(seq, 1))),
+        new SpecificCriterion(39, new Criterion("no two adjacent colors flashed in counter-clockwise order", seq => !matchesPattern(seq, 5))),
+        new SpecificCriterion(61, new Criterion("two adjacent colors flashed in clockwise order", seq => matchesPattern(seq, 1))),
+        new SpecificCriterion(39, new Criterion("no two colors two apart flashed in counter-clockwise order", seq => !matchesPattern(seq, 4))),
+        new SpecificCriterion(50, new Criterion("the colors flashing first and last are different and not adjacent", seq => seq[0] != (seq.Last() + 1) % 6 && seq[0] != (seq.Last() + 5) % 6 && seq[0] != seq.Last())),
+        new SpecificCriterion(52, new Criterion("a color flashed, then another color, then the first", seq => Enumerable.Range(0, seq.Length - 2).Any(ix => seq[ix] == seq[ix + 2]))),
+        new SpecificCriterion(39, new Criterion("no two colors two apart flashed in clockwise order", seq => !matchesPattern(seq, 2))),
+        new SpecificCriterion(61, new Criterion("two adjacent colors flashed in counter-clockwise order", seq => matchesPattern(seq, 5))),
+        new SpecificCriterion(61, new Criterion("two colors two apart flashed in clockwise order", seq => matchesPattern(seq, 2))),
+        new SpecificCriterion(61, new Criterion("two colors two apart flashed in counter-clockwise order", seq => matchesPattern(seq, 4))),
+        new SpecificCriterion(52, new Criterion("the number of distinct colors that flashed is odd", seq => Enumerable.Range(0, 6).Count(col => seq.Contains(col)) % 2 == 1)),
+        new CriterionFromColors(77, (colors, colIxs) => new Criterion(string.Format("at least two colors flashed out of {0}, {1}, and {2}", colors[0], colors[1], colors[2]), seq => colIxs.Count(clrIx => seq.Contains(clrIx)) >= 2)));
 
     private static int _moduleIdCounter = 1;
     private int _moduleId;
 
+    private static Vector3[] _unrotatedFlapOutline;
     static SimonScreamsModule()
     {
         const float innerRadius = 0.4f;
@@ -97,14 +128,10 @@ public class SimonScreamsModule : MonoBehaviour
     void Start()
     {
         _moduleId = _moduleIdCounter++;
-        _isActivated = false;
         _isSolved = false;
         _stage = 0;
         _subprogress = 0;
         _colors = ((SimonColor[]) Enum.GetValues(typeof(SimonColor))).Shuffle();
-        _red = _colors.IndexOf(SimonColor.Red);
-        _yellow = _colors.IndexOf(SimonColor.Yellow);
-        _blue = _colors.IndexOf(SimonColor.Blue);
         _sequences = generateSequences();
         _makeSounds = false;
 
@@ -113,16 +140,11 @@ public class SimonScreamsModule : MonoBehaviour
         {
             ColorblindIndicators[i].text = _colors[i].ToString().ToUpperInvariant();
             ColorblindIndicators[i].gameObject.SetActive(colorblind);
-        }
 
-        for (int i = 0; i < 6; i++)
-        {
             var mat = Materials[(int) _colors[i]];
             Buttons[i].GetComponent<MeshRenderer>().material = mat;
             Lights[i].color = mat.color;
-
-            var j = i;
-            Buttons[i].OnInteract = delegate { HandlePress(j); return false; };
+            Buttons[i].OnInteract = HandlePress(i);
         }
 
         for (int i = 0; i < 3; i++)
@@ -130,14 +152,106 @@ public class SimonScreamsModule : MonoBehaviour
 
         Debug.LogFormat("[Simon Screams #{1}] Colors in clockwise order are: {0}", _colors.JoinString(", "), _moduleId);
 
+        /* RULE SEED */
+        /* (relies on _colors already being decided) */
+
+        var rnd = RuleSeedable.GetRNG();
+        var steps = rnd.Next(0, 25);
+        for (var i = 0; i < steps; i++)
+            rnd.NextDouble();
+
+        var rules = rnd.ShuffleFisherYates(_allRowCriteria.ToArray()).Take(5).ToArray();
+        Array.Sort(rules, (a, b) => a.Probability.CompareTo(b.Probability));
+        _rowCriteria = new Criterion[6];
+        for (int i = 0; i < 5; i++)
+        {
+            if (rules[i].RequiresColors)
+            {
+                var colors = rnd.ShuffleFisherYates(new[] { SimonColor.Orange, SimonColor.Yellow, SimonColor.Red, SimonColor.Green, SimonColor.Blue, SimonColor.Purple });
+                _rowCriteria[i] = rules[i].GetCriterion(colors, colors.Select(c => Array.IndexOf(_colors, c)).ToArray());
+            }
+            else
+                _rowCriteria[i] = rules[i].GetCriterion(null, null);
+        }
+        _rowCriteria[5] = new Criterion("Otherwise", seq => true);
+
+        var gt = rnd.Next(0, 2) != 0;
+        var ch = gt ? '≥' : '≤';
+        Func<int, bool> cmp = n => gt ? (n >= 3) : (n <= 3);
+
+        _smallTableRowCriteria = rnd.ShuffleFisherYates(Ut.NewArray(
+            new SmallTableCriterion(ch + " 3 ports", b => cmp(b.GetPortCount())),
+            new SmallTableCriterion(ch + " 3 indicators", b => cmp(b.GetIndicators().Count())),
+            new SmallTableCriterion(ch + " 3 batteries", b => cmp(b.GetBatteryCount())),
+            new SmallTableCriterion(ch + " 3 digits in serial number", b => cmp(b.GetSerialNumberNumbers().Count())),
+            new SmallTableCriterion(ch + " 3 letters in serial number", b => cmp(b.GetSerialNumberLetters().Count())),
+            new SmallTableCriterion(ch + " 3 battery holders", b => cmp(b.GetBatteryHolderCount()))));
+
+        if (rnd.Seed == 1)
+        {
+            _largeTable = _largeTableSeed1;
+            _smallTable = _smallTableSeed1;
+            _stageIxs = new[] { 0, 1, 2 };
+        }
+        else
+        {
+            _stageIxs = new int[3];
+            _stageIxs[0] = rnd.Next(0, 3);
+            _stageIxs[1] = rnd.Next(_stageIxs[0] + 1, 4);
+            _stageIxs[2] = rnd.Next(_stageIxs[1] + 1, 5);
+
+            var numbers = Enumerable.Range(0, 6).ToArray();
+
+            var columnShuffle1 = rnd.ShuffleFisherYates(numbers.ToArray());
+            var columnShuffle2 = rnd.ShuffleFisherYates(numbers.ToArray());
+            var columnShuffle3 = rnd.ShuffleFisherYates(numbers.ToArray());
+            var columnShuffle = new[] { columnShuffle1, columnShuffle2, columnShuffle3 };
+
+            var rowShuffle1 = rnd.ShuffleFisherYates(numbers.ToArray());
+            var rowShuffle2 = rnd.ShuffleFisherYates(numbers.ToArray());
+            var rowShuffle3 = rnd.ShuffleFisherYates(numbers);
+            var rowShuffle = new[] { rowShuffle1, rowShuffle2, rowShuffle3 };
+
+            _largeTable = _largeTableSeed1.Select(row => new string[row.Length]).ToArray();
+            for (var r = 0; r < 6; r++)
+                for (var c = 0; c < 6; c++)
+                    _largeTable[r][c] = Enumerable.Range(0, 3).Select(ix => _largeTableSeed1[rowShuffle[ix][r]][columnShuffle[ix][c]].Substring(ix, 1)).JoinString();
+
+            rnd.ShuffleFisherYates(columnShuffle1);
+            rnd.ShuffleFisherYates(rowShuffle1);
+
+            _smallTable = _smallTableSeed1.Select(row => new SimonColor[row.Length]).ToArray();
+            for (var r = 0; r < 6; r++)
+                _smallTable[r] = Enumerable.Range(0, 6).Select(c => _smallTableSeed1[rowShuffle1[r]][columnShuffle1[c]]).ToArray();
+        }
+
+        for (int i = 0; i < 6; i++)
+            Debug.LogFormat("<Simon Screams #{0}> Large Table Row {1} = {2}", _moduleId, i + 1, _rowCriteria[i].Name);
+
+        for (int i = 0; i < 6; i++)
+            Debug.LogFormat("<Simon Screams #{0}> Small Table Row {1} = {2}", _moduleId, i + 1, _smallTableRowCriteria[i].Name);
+
+        /* END RULE SEED */
+
         startBlinker(1.5f);
         alignFlaps(0, 90, .01f);
-        Module.OnActivate = ActivateModule;
         Bomb.OnBombExploded = delegate { StopAllCoroutines(); };
 
         float scalar = transform.lossyScale.x;
-        foreach (Light light in Lights)
+        foreach (var light in Lights)
             light.range *= scalar;
+
+        var smallTableApplicable = _smallTableRowCriteria.Select(cr => cr.Check(Bomb)).ToArray();
+        Debug.LogFormat("[Simon Screams #{1}] Small table applicable rows are: {0}", Enumerable.Range(0, _smallTableRowCriteria.Length).Where(ix => smallTableApplicable[ix]).Select(ix => _smallTableRowCriteria[ix].Name).JoinString(", "), _moduleId);
+        _expectedInput = _sequences.Select((seq, stage) =>
+        {
+            var applicableColumn = _colors[seq[_stageIxs[stage]]];
+            var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq));
+            var smallTableColumn = _smallTableColumns.IndexOf(_largeTable[applicableRow][(int) applicableColumn][stage]);
+            return _smallTable.Where((row, ix) => smallTableApplicable[ix]).Select(row => _colors.IndexOf(row[smallTableColumn])).ToArray();
+        }).ToArray();
+
+        logCurrentStage();
     }
 
     private void alignFlaps(int firstBtnIx, float angle, float duration, bool animation = false)
@@ -222,53 +336,57 @@ public class SimonScreamsModule : MonoBehaviour
         _blinker = StartCoroutine(runBlinker());
     }
 
-    private void HandlePress(int ix)
+    private KMSelectable.OnInteractHandler HandlePress(int ix)
     {
-        if (!_isActivated || _isSolved)
-            return;
-
-        Buttons[ix].AddInteractionPunch();
-
-        _makeSounds = true;
-        Audio.PlaySoundAtTransform("Sound" + (ix + 7), Buttons[ix].transform);
-        CancelInvoke("startBlinker");
-
-        if (ix != _expectedInput[_stage][_subprogress])
+        return delegate
         {
-            Debug.LogFormat("[Simon Screams #{3}] Expected {0}, but you pressed {1}. Input reset. Now at stage {2} key 1.", _colors[_expectedInput[_stage][_subprogress]], _colors[ix], _stage + 1, _moduleId);
-            Module.HandleStrike();
-            _subprogress = 0;
-            startBlinker(1.5f);
-        }
-        else
-        {
-            _subprogress++;
-            var logStage = false;
-            if (_subprogress == _expectedInput[_stage].Length)
+            if (_isSolved)
+                return false;
+
+            Buttons[ix].AddInteractionPunch();
+
+            _makeSounds = true;
+            Audio.PlaySoundAtTransform("Sound" + (ix + 7), Buttons[ix].transform);
+            CancelInvoke("startBlinker");
+
+            if (ix != _expectedInput[_stage][_subprogress])
             {
-                Leds[_stage].material = LitLed;
-                _stage++;
+                Debug.LogFormat("[Simon Screams #{3}] Expected {0}, but you pressed {1}. Input reset. Now at stage {2} key 1.", _colors[_expectedInput[_stage][_subprogress]], _colors[ix], _stage + 1, _moduleId);
+                Module.HandleStrike();
                 _subprogress = 0;
-                if (_stage == _expectedInput.Length)
-                {
-                    Debug.LogFormat("[Simon Screams #{1}] Pressing {0} was correct. Module solved.", _colors[ix], _moduleId);
-                    _isSolved = true;
-                    StartCoroutine(victory(ix));
-                    return;
-                }
-
-                logStage = true;
-                startBlinker(1f);
+                startBlinker(1.5f);
             }
             else
-                startBlinker(5f);
+            {
+                _subprogress++;
+                var logStage = false;
+                if (_subprogress == _expectedInput[_stage].Length)
+                {
+                    Leds[_stage].material = LitLed;
+                    _stage++;
+                    _subprogress = 0;
+                    if (_stage == _expectedInput.Length)
+                    {
+                        Debug.LogFormat("[Simon Screams #{1}] Pressing {0} was correct. Module solved.", _colors[ix], _moduleId);
+                        _isSolved = true;
+                        StartCoroutine(victory(ix));
+                        return false;
+                    }
 
-            Debug.LogFormat("[Simon Screams #{3}] Pressing {0} was correct; now at stage {1} key {2}.", _colors[ix], _stage + 1, _subprogress + 1, _moduleId);
-            if (logStage)
-                logCurrentStage();
-        }
+                    logStage = true;
+                    startBlinker(1f);
+                }
+                else
+                    startBlinker(5f);
 
-        StartCoroutine(flashUpOne(ix));
+                Debug.LogFormat("[Simon Screams #{3}] Pressing {0} was correct; now at stage {1} key {2}.", _colors[ix], _stage + 1, _subprogress + 1, _moduleId);
+                if (logStage)
+                    logCurrentStage();
+            }
+
+            StartCoroutine(flashUpOne(ix));
+            return false;
+        };
     }
 
     private IEnumerator victory(int ix)
@@ -346,31 +464,13 @@ public class SimonScreamsModule : MonoBehaviour
         return arr;
     }
 
-    void ActivateModule()
-    {
-        _isActivated = true;
-
-        var smallTableRows = _smallTableRowCriteria.Select(cri => cri(Bomb)).ToArray();
-        Debug.LogFormat("[Simon Screams #{1}] Small table applicable rows are: {0}", smallTableRows.SelectIndexWhere(b => b).Select(ix => _smallTableRowCriteriaNames[ix]).JoinString(", "), _moduleId);
-        var ryb = new[] { _red, _yellow, _blue };
-        _expectedInput = _sequences.Select((seq, stage) =>
-        {
-            var applicableColumn = _colors[seq[stage]];
-            var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq, ryb));
-            var smallTableColumn = _smallTableColumns.IndexOf(_largeTable[applicableRow][(int) applicableColumn][stage]);
-            return _smallTable.Where((row, ix) => smallTableRows[ix]).Select(row => _colors.IndexOf(row[smallTableColumn])).ToArray();
-        }).ToArray();
-
-        logCurrentStage();
-    }
-
     void logCurrentStage()
     {
         var seq = _sequences[_stage];
-        var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq, new[] { _red, _yellow, _blue }));
+        var applicableRow = _rowCriteria.IndexOf(cri => cri.Check(seq));
 
         Debug.LogFormat("[Simon Screams #{2}] Stage {0} sequence: {1}", _stage + 1, seq.Select(ix => _colors[ix]).JoinString(", "), _moduleId);
-        Debug.LogFormat("[Simon Screams #{4}] Stage {0} column={1}, row={2} ({3})", _stage + 1, _colors[seq[_stage]], applicableRow + 1, _rowCriteria[applicableRow].Name, _moduleId);
+        Debug.LogFormat("[Simon Screams #{4}] Stage {0} column={1}, row={2} ({3})", _stage + 1, _colors[seq[_stageIxs[_stage]]], applicableRow + 1, _rowCriteria[applicableRow].Name, _moduleId);
         Debug.LogFormat("[Simon Screams #{2}] Stage {0} expected keypresses: {1}", _stage + 1, _expectedInput[_stage].Select(ix => _colors[ix]).JoinString(", "), _moduleId);
     }
 
