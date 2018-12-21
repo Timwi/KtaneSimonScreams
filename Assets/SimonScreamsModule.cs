@@ -168,7 +168,7 @@ public class SimonScreamsModule : MonoBehaviour
             if (rules[i].RequiresColors)
             {
                 var colors = rnd.ShuffleFisherYates(new[] { SimonColor.Orange, SimonColor.Yellow, SimonColor.Red, SimonColor.Green, SimonColor.Blue, SimonColor.Purple });
-                _rowCriteria[i] = rules[i].GetCriterion(colors, colors.Select(c => Array.IndexOf(_colors, c)).ToArray());
+                _rowCriteria[i] = rules[i].GetCriterion(colors, colors.Take(3).Select(c => Array.IndexOf(_colors, c)).ToArray());
             }
             else
                 _rowCriteria[i] = rules[i].GetCriterion(null, null);
