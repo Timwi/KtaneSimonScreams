@@ -484,7 +484,7 @@ public class SimonScreamsModule : MonoBehaviour
         yield return null;
         while (!_isSolved)
         {
-            HandlePress(_expectedInput[_stage][_subprogress]);
+            Buttons[_expectedInput[_stage][_subprogress]].OnInteract();
             yield return new WaitForSeconds(0.4f);
         }
     }
