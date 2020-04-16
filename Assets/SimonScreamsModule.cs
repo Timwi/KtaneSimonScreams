@@ -38,6 +38,7 @@ public class SimonScreamsModule : MonoBehaviour
     private bool _isSolved;
     private bool _makeSounds;
     private Coroutine _blinker;
+    private bool _victoryAnimationDone = false;
 
     private const int numStages = 3, minFirstStageLength = 3, maxFirstStageLength = 5, minStageExtra = 1, maxStageExtra = 2;
     private static readonly string _smallTableColumns = "ACDEFH";
@@ -410,6 +411,7 @@ public class SimonScreamsModule : MonoBehaviour
             Lights[(12 - i + ix) % 6].enabled = false;
         }
         Module.HandlePass();
+        _victoryAnimationDone = true;
     }
 
     private IEnumerator runBlinker(float delay = 0)
@@ -487,6 +489,8 @@ public class SimonScreamsModule : MonoBehaviour
             Buttons[_expectedInput[_stage][_subprogress]].OnInteract();
             yield return new WaitForSeconds(0.4f);
         }
+        while (!_victoryAnimationDone)
+            yield return true;
     }
 
     IEnumerator ProcessTwitchCommand(string command)
