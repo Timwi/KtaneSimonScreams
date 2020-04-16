@@ -111,6 +111,7 @@ public class SimonScreamsModule : MonoBehaviour
 
     private static int _moduleIdCounter = 1;
     private int _moduleId;
+    private bool _finishedAnimating
 
     private static Vector3[] _unrotatedFlapOutline;
     static SimonScreamsModule()
@@ -410,6 +411,7 @@ public class SimonScreamsModule : MonoBehaviour
             Lights[(12 - i + ix) % 6].enabled = false;
         }
         Module.HandlePass();
+        _finishedAnimating = true;
     }
 
     private IEnumerator runBlinker(float delay = 0)
@@ -486,6 +488,11 @@ public class SimonScreamsModule : MonoBehaviour
         {
             Buttons[_expectedInput[_stage][_subprogress]].OnInteract();
             yield return new WaitForSeconds(0.4f);
+        }
+        while (!_finishedAnimating)
+        {
+            yield return true;
+            yield return new WaitForSeconds(.1f);
         }
     }
 
