@@ -111,7 +111,7 @@ public class SimonScreamsModule : MonoBehaviour
 
     private static int _moduleIdCounter = 1;
     private int _moduleId;
-    private bool _finishedAnimating
+    private bool _finishedAnimating;
 
     private static Vector3[] _unrotatedFlapOutline;
     static SimonScreamsModule()
