@@ -112,6 +112,7 @@ public class SimonScreamsModule : MonoBehaviour
 
     private static int _moduleIdCounter = 1;
     private int _moduleId;
+    private bool _colorblind;
 
     private static Vector3[] _unrotatedFlapOutline;
     static SimonScreamsModule()
@@ -136,11 +137,11 @@ public class SimonScreamsModule : MonoBehaviour
         _sequences = generateSequences();
         _makeSounds = false;
 
-        var colorblind = GetComponent<KMColorblindMode>().ColorblindModeActive;
+        _colorblind = GetComponent<KMColorblindMode>().ColorblindModeActive;
         for (int i = 0; i < 6; i++)
         {
             ColorblindIndicators[i].text = _colors[i].ToString().ToUpperInvariant();
-            ColorblindIndicators[i].gameObject.SetActive(colorblind);
+            ColorblindIndicators[i].gameObject.SetActive(_colorblind);
 
             var mat = Materials[(int) _colors[i]];
             Buttons[i].GetComponent<MeshRenderer>().material = mat;
@@ -477,7 +478,7 @@ public class SimonScreamsModule : MonoBehaviour
     }
 
 #pragma warning disable 414
-    private readonly string TwitchHelpMessage = @"Press the correct colors for each round with “!{0} press Blue Orange Yellow” or “!{0} B O Y”. Permissible colors are: Red, Orange, Yellow, Green, Blue, Purple. Use “!{0} disco” or “!{0} lasershow” to have a good time. Use “!{0} colorblind” to show the colors of the buttons.";
+    private readonly string TwitchHelpMessage = @"!{0} press Blue Orange Yellow | !{0} B O Y [colors are: Red, Orange, Yellow, Green, Blue, Purple] | !{0} disco | !{0} lasershow | !{0} colorblind";
     private readonly bool TwitchShouldCancelCommand = false;
 #pragma warning restore 414
 
@@ -498,7 +499,7 @@ public class SimonScreamsModule : MonoBehaviour
         var pieces = command.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 
         if (pieces.Length == 1 && pieces[0] == "colorblind")
-            return enableColorblindMode();
+            return toggleColorblindMode();
 
         if (pieces.Length == 1 && pieces[0] == "disco")
             return disco();
@@ -509,13 +510,14 @@ public class SimonScreamsModule : MonoBehaviour
         return processPress(pieces);
     }
 
-    private IEnumerator enableColorblindMode()
+    private IEnumerator toggleColorblindMode()
     {
+        _colorblind = !_colorblind;
         yield return null;
         for (int i = 0; i < 6; i++)
         {
             yield return new WaitForSeconds(.15f);
-            ColorblindIndicators[i].gameObject.SetActive(true);
+            ColorblindIndicators[i].gameObject.SetActive(_colorblind);
         }
     }
 
