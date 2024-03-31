@@ -1,0 +1,10 @@
+{
+  "name": "SimonScreams-Editor",
+  "references": [
+    "SimonScreams"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": []
+}
