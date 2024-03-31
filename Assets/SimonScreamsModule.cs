@@ -80,7 +80,7 @@ public class SimonScreamsModule : MonoBehaviour
         new SpecificCriterion(261, new Criterion("a color flashed, then one adjacent, then the one opposite the first", seq => matchesPattern(seq, 1, 3) || matchesPattern(seq, 5, 3))),
         new SpecificCriterion(262, new Criterion("a color flashed, then a color two away, then the one opposite that", seq => matchesPattern(seq, 2, 5) || matchesPattern(seq, 4, 1))),
         new SpecificCriterion(263, new Criterion("a color flashed, then a color two away, then the one opposite the first", seq => matchesPattern(seq, 2, 3) || matchesPattern(seq, 4, 3))),
-        new CriterionFromColors(231, (colors, colorIxs) => new Criterion(string.Format("at most one color flashed out of {0}, {1}, and {2}", colors[0], colors[1], colors[2]), seq => colorIxs.Count(cIx => seq.Contains(cIx)) <= 1)),
+        new CriterionFromColors(231, (colors, colorIxs) => new Criterion(string.Format("at most one color flashed out of {0}, {1}, and {2}", colors[0], colors[1], colors[2]), seq => colorIxs.Count(cIx => seq.Contains(cIx)) <= 1, colors.Take(3).Aggregate(0, (p, n) => (p << 3) | (int) n) << 1)),
         new SpecificCriterion(264, new Criterion("a color flashed, then the one opposite, then one adjacent to the first", seq => matchesPattern(seq, 3, 1) || matchesPattern(seq, 3, 5))),
         new SpecificCriterion(221, new Criterion("no color flashed more than once", seq => Enumerable.Range(0, 6).All(col => seq.Count(c => c == col) <= 1))),
         new SpecificCriterion(265, new Criterion("a color flashed, then the one opposite, then one adjacent to that", seq => matchesPattern(seq, 3, 2) || matchesPattern(seq, 3, 4))),
@@ -108,7 +108,7 @@ public class SimonScreamsModule : MonoBehaviour
         new SpecificCriterion(612, new Criterion("two colors two apart flashed in clockwise order", seq => matchesPattern(seq, 2))),
         new SpecificCriterion(613, new Criterion("two colors two apart flashed in counter-clockwise order", seq => matchesPattern(seq, 4))),
         new SpecificCriterion(521, new Criterion("the number of distinct colors that flashed is odd", seq => Enumerable.Range(0, 6).Count(col => seq.Contains(col)) % 2 == 1)),
-        new CriterionFromColors(770, (colors, colIxs) => new Criterion(string.Format("at least two colors flashed out of {0}, {1}, and {2}", colors[0], colors[1], colors[2]), seq => colIxs.Count(clrIx => seq.Contains(clrIx)) >= 2)));
+        new CriterionFromColors(770, (colors, colIxs) => new Criterion(string.Format("at least two colors flashed out of {0}, {1}, and {2}", colors[0], colors[1], colors[2]), seq => colIxs.Count(clrIx => seq.Contains(clrIx)) >= 2, (colors.Take(3).Aggregate(0, (p, n) => (p << 3) | (int) n) << 1) | 1)));
 
     private static int _moduleIdCounter = 1;
     private int _moduleId;
@@ -228,7 +228,7 @@ public class SimonScreamsModule : MonoBehaviour
         }
 
         for (int i = 0; i < 6; i++)
-            Debug.LogFormat("<Simon Screams #{0}> Large Table Row {1} = {2}", _moduleId, i + 1, _rowCriteria[i].Name);
+            Debug.LogFormat("<Simon Screams #{0}> Large Table Row {1} = {2} ({3})", _moduleId, i + 1, _rowCriteria[i].Name, _rowCriteria[i].SouvenirCode);
 
         for (int i = 0; i < 6; i++)
             Debug.LogFormat("<Simon Screams #{0}> Small Table Row {1} = {2}", _moduleId, i + 1, _smallTableRowCriteria[i].Name);

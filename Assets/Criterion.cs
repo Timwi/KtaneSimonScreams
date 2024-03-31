@@ -6,10 +6,12 @@ namespace SimonScreams
     {
         public string Name { get; private set; }
         public Func<int[], bool> Check { get; private set; }
-        public Criterion(string name, Func<int[], bool> check)
+        public int SouvenirCode { get; private set; }
+        public Criterion(string name, Func<int[], bool> check, int souvenirCode = 0)
         {
             Name = name;
             Check = check;
+            SouvenirCode = souvenirCode;
         }
     }
 
